@@ -34,7 +34,7 @@ namespace yol0Riven
         private static bool UseAttack = false;
         private static bool useTiamat = false;
 
-        private static Obj_AI_Base currentTarget = null;
+        private static Obj_AI_Hero currentTarget = null;
         public static void Main(string[] args)
         {
             CustomEvents.Game.OnGameLoad += OnLoad;
@@ -57,6 +57,7 @@ namespace yol0Riven
             Orbwalking.BeforeAttack += BeforeAttack;
             Orbwalking.AfterAttack += AfterAttack;
             Obj_AI_Base.OnProcessSpellCast += OnProcessSpell;
+            Obj_AI_Base.OnPlayAnimation += OnAnimation;
             Game.OnGameUpdate += OnGameUpdate;
             Game.OnGameUpdate += Buffs_GameUpdate;
             Game.OnGameProcessPacket += OnGameProcessPacket;
@@ -112,7 +113,6 @@ namespace yol0Riven
         {
             if (Config.Item("DrawRanges").GetValue<bool>())
             {
-                
                 Utility.DrawCircle(Player.Position, _e.Range + _q.Range, System.Drawing.Color.Blue);
             }
         }
@@ -122,12 +122,14 @@ namespace yol0Riven
             KillSecure();
             if (orbwalker.ActiveMode.ToString() == "Combo")
             {
-                Obj_AI_Hero target = SimpleTs.GetTarget(_e.Range + _q.Range + Player.AttackRange, SimpleTs.DamageType.Physical);
-                if (!target.IsDead && target.IsVisible)
-                {
-                    GapClose(target);
+                if (currentTarget != null && currentTarget.IsDead)
+                    orbwalker.SetMovement(true);
 
-                    Combo(target);
+                currentTarget = SimpleTs.GetTarget(_e.Range + _q.Range + Player.AttackRange, SimpleTs.DamageType.Physical);
+                if (!currentTarget.IsDead && currentTarget.IsVisible)
+                {
+                    GapClose(currentTarget);
+                    Combo(currentTarget);
                 }
                 
             }
@@ -195,11 +197,21 @@ namespace yol0Riven
 
         }
 
+        public static void OnAnimation(Obj_AI_Base unit, GameObjectPlayAnimationEventArgs args)
+        {
+            if (unit.IsMe && args.Animation.Contains("Spell1"))
+            {
+                Utility.DelayAction.Add(Game.Ping + 125, delegate { CancelAnimation(); });
+                
+            }
+
+        }
+
         public static void OnGameProcessPacket(GamePacketEventArgs args)
         {
             try
             {
-                if (args.PacketData[0] == 101) // 0x65 Damage
+                if (args.PacketData[0] == 101)
                 {
                     GamePacket packet = new GamePacket(args.PacketData);
                     packet.Position = 5;
@@ -223,22 +235,25 @@ namespace yol0Riven
                 }
                 else if (args.PacketData[0] == 254)
                 {
-                    GamePacket packet = new GamePacket(args.PacketData);
-                    packet.Position = 1;
-                    var sourceId = packet.ReadInteger();
-                    if (sourceId == Player.NetworkId)
+                    if (orbwalker.ActiveMode.ToString() == "Combo")
                     {
-                        if (_tiamat.IsReady())
+                        GamePacket packet = new GamePacket(args.PacketData);
+                        packet.Position = 1;
+                        var sourceId = packet.ReadInteger();
+                        if (sourceId == Player.NetworkId)
                         {
-                            Utility.DelayAction.Add(Game.Ping, delegate { _tiamat.Cast(); });
-                            //Orbwalking.ResetAutoAttackTimer();
+                            if (_tiamat.IsReady() && Player.Distance(currentTarget.Position) < _tiamat.Range)
+                            {
+                                Utility.DelayAction.Add(Game.Ping / 2, delegate { _tiamat.Cast(); });
+                                Orbwalking.ResetAutoAttackTimer();
+                            }
+                            if (_tiamat2.IsReady() && Player.Distance(currentTarget.Position) < _tiamat2.Range)
+                            {
+                                Utility.DelayAction.Add(Game.Ping / 2, delegate { _tiamat2.Cast(); });
+                                Orbwalking.ResetAutoAttackTimer();
+                            }
+
                         }
-                        if (_tiamat2.IsReady())
-                        {
-                            Utility.DelayAction.Add(Game.Ping, delegate { _tiamat2.Cast(); });
-                            //Orbwalking.ResetAutoAttackTimer();
-                        }
-                        
                     }
                 }
             }
@@ -305,6 +320,7 @@ namespace yol0Riven
         public static void CancelAnimation()
         {
             Packet.C2S.Move.Encoded(new Packet.C2S.Move.Struct(Game.CursorPos.X, Game.CursorPos.Y)).Send();
+            Utility.DelayAction.Add(Game.Ping/2, delegate { Orbwalking.ResetAutoAttackTimer(); });
         }
         public static void OnProcessSpell(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
         {
@@ -313,14 +329,12 @@ namespace yol0Riven
             if (sender.IsMe)
             {
                 var SpellName = args.SData.Name;
+                
                 if (orbwalker.ActiveMode.ToString() == "Combo")
                 {
-                    if (SpellName == "RivenTriCleave")
+                    if (SpellName.Contains("Attack") && qCount > 0)
                     {
-                        Utility.DelayAction.Add((int)args.SData.SpellCastTime, delegate { CancelAnimation(); });
-                        if (_w.IsReady() && Player.Distance(currentTarget.ServerPosition) <= _w.Range)
-                            nextSpell = _w;
-                        else if (_tiamat.IsReady() && Player.Distance(currentTarget.ServerPosition) + currentTarget.BoundingRadius <= _tiamat.Range)
+                        if (_tiamat.IsReady() && Player.Distance(currentTarget.ServerPosition) + currentTarget.BoundingRadius <= _tiamat.Range)
                         {
                             nextSpell = null;
                             useTiamat = true;
@@ -330,6 +344,23 @@ namespace yol0Riven
                             nextSpell = null;
                             useTiamat = true;
                         }
+                    }
+                    else if (SpellName == "RivenTriCleave")
+                    {
+                        //Utility.DelayAction.Add((int)args.SData.SpellCastTime - Game.Ping/2, delegate { CancelAnimation(); });
+                        nextSpell = null;
+                        if (_tiamat.IsReady() && Player.Distance(currentTarget.ServerPosition) + currentTarget.BoundingRadius <= _tiamat.Range)
+                        {
+                            nextSpell = null;
+                            useTiamat = true;
+                        }
+                        else if (_tiamat2.IsReady() && Player.Distance(currentTarget.ServerPosition) + currentTarget.BoundingRadius <= _tiamat2.Range)
+                        {
+                            nextSpell = null;
+                            useTiamat = true;
+                        }
+                        else if (_w.IsReady() && Player.Distance(currentTarget.Position) <= _w.Range)
+                            nextSpell = _w;
                         else
                         {
                             nextSpell = null;
@@ -353,12 +384,12 @@ namespace yol0Riven
                     {
 
                         ultiOn = true;
-                        if (_tiamat.IsReady())
+                        if (_tiamat.IsReady() && Player.Distance(currentTarget.ServerPosition) < _tiamat.Range)
                         {
                             nextSpell = null;
                             useTiamat = true;
                         }
-                        else if (_tiamat2.IsReady())
+                        else if (_tiamat2.IsReady() && Player.Distance(currentTarget.ServerPosition) < _tiamat2.Range)
                         {
                             nextSpell = null;
                             useTiamat = true;
@@ -414,7 +445,7 @@ namespace yol0Riven
             float eRange = target.BoundingRadius + _e.Range;
             float qRange = target.BoundingRadius + _q.Range;
             float eqRange = target.BoundingRadius + _q.Range + _e.Range;
-            float distance = Player.Distance(target);
+            float distance = Player.Distance(target) + target.BoundingRadius;
             if (distance < aRange)
                 return;
 
@@ -426,7 +457,7 @@ namespace yol0Riven
             else if (qCount < 2 && _q.IsReady() && _e.IsReady() && eqRange > distance)
             {
                 _e.Cast(target.ServerPosition);
-                Utility.DelayAction.Add(200, delegate { CastQ(target, true); });
+                Utility.DelayAction.Add(300, delegate { CastQ(target, true); });
             } 
             else if (_e.IsReady() && eRange > distance)
             {
@@ -437,7 +468,7 @@ namespace yol0Riven
 
         private static void KillSecure()
         {
-            if (ultiReady)
+            if (ultiReady && Config.Item("KillSteal").GetValue<bool>())
             {
                 foreach (var hero in ObjectManager.Get<Obj_AI_Hero>())
                 {
