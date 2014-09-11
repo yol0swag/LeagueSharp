@@ -1,4 +1,10 @@
-﻿using System;
+﻿//#define DEBUGCALC
+//#define DEBUGCOMBO
+//#define DEBUGPACKETS
+//#define DEBUGGAPCLOSE
+//#define DEBUGANIMATIONCANCEL
+//#define DEBUGRDAMAGE
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,6 +14,8 @@ using System.Globalization;
 using LeagueSharp;
 using LeagueSharp.Common;
 using System.Drawing;
+
+
 namespace yol0Riven
 {
     internal class Program
@@ -22,6 +30,7 @@ namespace yol0Riven
         public static Spell _r = new Spell(SpellSlot.R, 900);
         public static Items.Item _tiamat = new Items.Item(3077, 400);
         public static Items.Item _tiamat2 = new Items.Item(3074, 400);
+        public static Items.Item _ghostblade = new Items.Item(3142, 600);
         public static Menu Config;
 
         private static int qCount = 0; // 
@@ -30,7 +39,10 @@ namespace yol0Riven
         private static bool ultiOn = false;
         private static bool ultiReady = false;
 
+        private static int lastCast = 0;
+
         private static Spell nextSpell = null;
+        private static Spell lastSpell = null;
         private static bool UseAttack = false;
         private static bool useTiamat = false;
 
@@ -42,6 +54,9 @@ namespace yol0Riven
 
         private static void OnLoad(EventArgs args)
         {
+            if (Player.ChampionName != "Riven")
+                return;
+
             Config = new Menu("yol0 Riven", "Riven", true);
             Config.AddSubMenu(new Menu("Orbwalker", "Orbwalker"));
             orbwalker = new Orbwalking.Orbwalker(Config.SubMenu("Orbwalker"));
@@ -52,7 +67,11 @@ namespace yol0Riven
             Config.AddToMainMenu();
 
             Config.AddItem(new MenuItem("KillSteal", "Killsteal").SetValue(true));
+            Config.AddItem(new MenuItem("AntiGapcloser", "Auto W Gapclosers").SetValue(true));
+            Config.AddItem(new MenuItem("Interrupt", "Auto W Interruptible Spells").SetValue(true));
             Config.AddItem(new MenuItem("DrawRanges", "Draw engage range").SetValue(true));
+            Config.AddItem(new MenuItem("CancelDelay", "Animation Cancel Delay").SetValue <Slider>(new Slider(250, 100, 400)));
+            
            
             Orbwalking.BeforeAttack += BeforeAttack;
             Orbwalking.AfterAttack += AfterAttack;
@@ -62,8 +81,9 @@ namespace yol0Riven
             Game.OnGameUpdate += Buffs_GameUpdate;
             Game.OnGameProcessPacket += OnGameProcessPacket;
             Drawing.OnDraw += OnDraw;
+            AntiGapcloser.OnEnemyGapcloser += OnEnemyGapCloser;
+            Interrupter.OnPosibleToInterrupt += OnPossibleToInterrupt;
         }
-
 
         private static void Buffs_GameUpdate(EventArgs args)
         {
@@ -117,15 +137,40 @@ namespace yol0Riven
             }
         }
 
+        public static void OnEnemyGapCloser(ActiveGapcloser gapcloser)
+        {
+            if (_w.IsReady() && gapcloser.Sender.IsValidTarget(_w.Range) && Config.Item("AntiGapcloser").GetValue<bool>())
+                _w.Cast();
+        }
+
+        public static void OnPossibleToInterrupt(Obj_AI_Base unit, InterruptableSpell spell)
+        {
+            if (_w.IsReady() && unit.IsValidTarget(_w.Range) && Config.Item("Interrupt").GetValue<bool>())
+                _w.Cast();
+        }
+
+
         private static void OnGameUpdate(EventArgs args)
         {
             KillSecure();
             if (orbwalker.ActiveMode.ToString() == "Combo")
             {
-                if (currentTarget != null && currentTarget.IsDead)
+                // try not to switch targets unless needed
+                if (currentTarget == null)
+                    AcquireTarget();
+
+                if (currentTarget != null && (currentTarget.IsDead || !currentTarget.IsVisible || !currentTarget.IsValidTarget(_e.Range + _q.Range + Player.AttackRange)))
                     orbwalker.SetMovement(true);
 
-                currentTarget = SimpleTs.GetTarget(_e.Range + _q.Range + Player.AttackRange, SimpleTs.DamageType.Physical);
+                if (!currentTarget.IsVisible)
+                    AcquireTarget();
+
+                if (currentTarget.IsDead)
+                    AcquireTarget();
+
+                if (!currentTarget.IsValidTarget(_e.Range + _q.Range + Player.AttackRange))
+                    AcquireTarget();
+
                 if (!currentTarget.IsDead && currentTarget.IsVisible)
                 {
                     GapClose(currentTarget);
@@ -135,6 +180,11 @@ namespace yol0Riven
             }
         }
 
+        private static void AcquireTarget()
+        {
+            currentTarget = SimpleTs.GetTarget(_e.Range + _q.Range + Player.AttackRange, SimpleTs.DamageType.Physical);
+        }
+
         public static void AfterAttack(Obj_AI_Base hero, Obj_AI_Base target)
         {
             orbwalker.SetMovement(true);
@@ -142,18 +192,24 @@ namespace yol0Riven
 
         public static void BeforeAttack(Orbwalking.BeforeAttackEventArgs args)
         {
+            // orbwalker cancels autos sometimes, fucks up DPS bad
             if (!args.Target.IsMinion)
                 orbwalker.SetMovement(false);
-
         }
 
         public static void Combo(Obj_AI_Hero target)
         {
-            var comboDmg = DamageCalc(target);
-            
+            var noRComboDmg = DamageCalcNoR(target);
+            var RComboDmg = DamageCalcR(target);
+#if DEBUGCALC
+            Console.WriteLine("No R Damage: " + noRComboDmg);
+            Console.WriteLine("R Damage: " + RComboDmg);
+#endif
 
-            if (_r.IsReady() && !ultiReady && comboDmg >= target.Health)
+            if (_r.IsReady() && !ultiReady && noRComboDmg < target.Health)
+            {
                 _r.Cast();
+            }
 
 
             if (!(_tiamat.IsReady() || _tiamat2.IsReady()) && !_q.IsReady())
@@ -161,7 +217,9 @@ namespace yol0Riven
 
             if (nextSpell == null && useTiamat == true)
             {
+#if DEBUGCOMBO
                 Console.WriteLine("UseTiamat = true");
+#endif
                 if (_tiamat.IsReady())
                     _tiamat.Cast();
                 else if (_tiamat2.IsReady())
@@ -172,46 +230,46 @@ namespace yol0Riven
 
             if (nextSpell == null && UseAttack == true)
             {
+#if DEBUGCOMBO
                 Console.WriteLine("UseAttack = true");
+#endif
                 Orbwalking.Orbwalk(target, target.ServerPosition);
             }
 
             if (nextSpell == _q)
             {
+#if DEBUGCOMBO
                 Console.WriteLine("nextSpell = _q");
+#endif
                 _q.Cast(target.ServerPosition);
                 nextSpell = null;
             }
 
             if (nextSpell == _w)
             {
+#if DEBUGCOMBO
                 Console.WriteLine("nextSpell = _w");
+#endif
                 _w.Cast();
             }
 
             if (nextSpell == _e)
             {
+#if DEBUGCOMBO
                 Console.WriteLine("nextSpell = _e");
+#endif
                 _e.Cast(currentTarget.ServerPosition);
             }
 
         }
 
-        public static void OnAnimation(Obj_AI_Base unit, GameObjectPlayAnimationEventArgs args)
-        {
-            if (unit.IsMe && args.Animation.Contains("Spell1"))
-            {
-                Utility.DelayAction.Add(Game.Ping + 125, delegate { CancelAnimation(); });
-                
-            }
-
-        }
+        
 
         public static void OnGameProcessPacket(GamePacketEventArgs args)
         {
             try
             {
-                if (args.PacketData[0] == 101)
+                if (args.PacketData[0] == 101) // damage dealt
                 {
                     GamePacket packet = new GamePacket(args.PacketData);
                     packet.Position = 5;
@@ -222,18 +280,28 @@ namespace yol0Riven
                     if (Player.NetworkId != sourceId)
                         return;
 
-                    Obj_AI_Hero target = ObjectManager.GetUnitByNetworkId<Obj_AI_Hero>(targetId);
-                    if (damageType == 12 || damageType == 3)
+                    Obj_AI_Base target = ObjectManager.GetUnitByNetworkId<Obj_AI_Hero>(targetId);
+#if DEBUGPACKETS
+                    Console.WriteLine("DamageType = " + damageType);
+#endif
+                    if (orbwalker.ActiveMode.ToString() == "Combo")
                     {
-                        if (orbwalker.ActiveMode.ToString() == "Combo")
+                        if (damageType == 12 || damageType == 3 || damageType == 11)
                         {
+                            if (_tiamat.IsReady() && Player.Distance(currentTarget.ServerPosition) < _tiamat.Range)
+                            {
+                                _tiamat.Cast();
+                            } else if (_tiamat2.IsReady() && Player.Distance(currentTarget.ServerPosition) < _tiamat2.Range)
+                            {
+                                _tiamat2.Cast();
+                            } else
+                            { nextSpell = _q; }
                             UseAttack = false;
                             orbwalker.SetMovement(true);
-                            nextSpell = _q;
-                        }
+                        }   
                     }
                 }
-                else if (args.PacketData[0] == 254)
+                else if (args.PacketData[0] == 254) //attack started, auto use tiamat
                 {
                     if (orbwalker.ActiveMode.ToString() == "Combo")
                     {
@@ -244,12 +312,12 @@ namespace yol0Riven
                         {
                             if (_tiamat.IsReady() && Player.Distance(currentTarget.Position) < _tiamat.Range)
                             {
-                                Utility.DelayAction.Add(Game.Ping / 2, delegate { _tiamat.Cast(); });
+                                Utility.DelayAction.Add(Game.Ping, delegate { _tiamat.Cast(); });
                                 Orbwalking.ResetAutoAttackTimer();
                             }
                             if (_tiamat2.IsReady() && Player.Distance(currentTarget.Position) < _tiamat2.Range)
                             {
-                                Utility.DelayAction.Add(Game.Ping / 2, delegate { _tiamat2.Cast(); });
+                                Utility.DelayAction.Add(Game.Ping, delegate { _tiamat2.Cast(); });
                                 Orbwalking.ResetAutoAttackTimer();
                             }
 
@@ -263,20 +331,101 @@ namespace yol0Riven
             }
         }
 
-        public static double DamageCalc(Obj_AI_Hero target)
+        private static double GetRDamage(Obj_AI_Hero target) // DamageLib doesn't do this correctly yet
+        {
+            var minDmg = 0.0;
+            if (_r.Level == 0)
+                return 0.0;
+
+            minDmg = (80 + (40 * (_r.Level - 1))) + 0.6 * ((0.2 * (Player.BaseAttackDamage + Player.FlatPhysicalDamageMod)) + Player.FlatPhysicalDamageMod); 
+            
+            var targetPercentHealthMissing = 100* (1 - target.Health / target.MaxHealth);
+            var dmg = 0.0;
+            if (targetPercentHealthMissing > 75.0f)
+            {
+                dmg = minDmg * 2;
+            }
+            else
+            {
+                dmg = minDmg + minDmg * (0.0267 * targetPercentHealthMissing);
+            }
+            
+            var realDmg = DamageLib.CalcPhysicalDmg(dmg, target);
+#if DEBUGRDAMAGE
+            Console.WriteLine("R minDmg = " + minDmg);
+            Console.WriteLine("R pctHealth = " + targetPercentHealthMissing);
+            Console.WriteLine("R predDmg = " + dmg);
+            Console.WriteLine("R Damage = " + realDmg);
+            Console.WriteLine("Cankill = " + (realDmg > target.Health));
+#endif
+            return realDmg;
+            
+        }
+
+        private static double GetUltiQDamage(Obj_AI_Hero target) // account for bonus ulti AD
+        {
+            var dmg = 10 + ((_q.Level - 1) * 20) + 0.6 * (1.2 * (Player.BaseAttackDamage + Player.FlatPhysicalDamageMod));
+            return DamageLib.CalcPhysicalDmg(dmg, target);
+        }
+
+        private static double GetUltiWDamage(Obj_AI_Hero target) // account for bonus ulti AD
+        {
+            var totalAD = Player.FlatPhysicalDamageMod + Player.BaseAttackDamage;
+            var dmg = 50 + ((_w.Level - 1) * 30) + (0.2 * totalAD + Player.FlatPhysicalDamageMod);
+            return DamageLib.CalcPhysicalDmg(dmg, target);
+        }
+
+        private static double GetQDamage(Obj_AI_Hero target)
+        {
+            var totalAD = Player.FlatPhysicalDamageMod + Player.BaseAttackDamage;
+            var dmg = 10 + ((_q.Level - 1) * 20) + (0.35 + (Player.Level * 0.05)) * totalAD;
+            return DamageLib.CalcPhysicalDmg(dmg, target);
+        }
+
+        private static double GetWDamage(Obj_AI_Hero target)
+        {
+            var dmg = 50 + (_w.Level * 30) + Player.FlatPhysicalDamageMod;
+            return DamageLib.CalcPhysicalDmg(dmg, target);
+        }
+
+        private static double DamageCalcNoR(Obj_AI_Hero target)
         {
             var health = target.Health;
-            var comboDmg = 0.0;
-            var qDamage = DamageLib.getDmg(target, DamageLib.SpellType.Q);
-            var wDamage = DamageLib.getDmg(target, DamageLib.SpellType.W);
+
+            var qDamage = GetQDamage(target);
+            var wDamage = GetWDamage(target);
             var tDamage = 0.0;
-            
-            
-
             var aDamage = DamageLib.getDmg(target, DamageLib.SpellType.AD);
-            var rDamage = DamageLib.getDmg(target, DamageLib.SpellType.R);
-            var pDmgMultiplier = 0.2;
+            var pDmgMultiplier = 0.2 + (0.05 * Math.Floor(Player.Level / 3.0));
+            var totalAD = Player.BaseAttackDamage + Player.FlatPhysicalDamageMod;
+            var pDamage = DamageLib.CalcPhysicalDmg(pDmgMultiplier * totalAD, target);
 
+            if (_tiamat.IsReady() || _tiamat2.IsReady())
+                tDamage = DamageLib.getDmg(target, DamageLib.SpellType.TIAMAT);
+
+            if (!_q.IsReady() && qCount == 0)
+                qDamage = 0.0;
+
+            if (!_w.IsReady())
+                wDamage = 0.0;
+
+            return wDamage + tDamage + (qDamage * (3 - qCount)) + (pDamage * (3 - qCount)) + aDamage * (3 - qCount);
+        }
+
+        public static double DamageCalcR(Obj_AI_Hero target)
+        {
+            var health = target.Health;
+            var qDamage = GetUltiQDamage(target);
+            var wDamage = GetUltiWDamage(target);
+            var rDamage = GetRDamage(target);
+            var tDamage = 0.0;
+            var totalAD = Player.FlatPhysicalDamageMod + Player.BaseAttackDamage;
+
+
+            var aDamage = DamageLib.CalcPhysicalDmg(0.2 * totalAD + totalAD, target);
+            
+            var pDmgMultiplier = 0.2 + (0.05 * Math.Floor(Player.Level / 3.0));
+            var pDamage = DamageLib.CalcPhysicalDmg(pDmgMultiplier * (0.2 * totalAD + totalAD), target);
             if (_tiamat.IsReady() || _tiamat2.IsReady())
                 tDamage = DamageLib.getDmg(target, DamageLib.SpellType.TIAMAT);
 
@@ -288,52 +437,53 @@ namespace yol0Riven
 
             if (_r.IsReady())
                 rDamage = 0.0;
-
-            switch (Player.Level)
-            {
-                case 1: pDmgMultiplier = 0.2; break;
-                case 2:
-                case 3: pDmgMultiplier = 0.25; break;
-                case 4:
-                case 5:
-                case 6: pDmgMultiplier = 0.3; break;
-                case 7:
-                case 8:
-                case 9: pDmgMultiplier = 0.35; break;
-                case 10:
-                case 11:
-                case 12: pDmgMultiplier = 0.4; break;
-                case 13:
-                case 14:
-                case 15: pDmgMultiplier = 0.45; break;
-                case 16:
-                case 17:
-                case 18: pDmgMultiplier = 0.5; break;
-                default: Console.WriteLine("Weird Player level: " + Player.Level); break;
-            }
-
-            var pDamage = DamageLib.CalcPhysicalDmg(pDmgMultiplier * (Player.BaseAttackDamage + Player.FlatPhysicalDamageMod), target);
-
-            comboDmg = pDamage * 3 + aDamage * 3 + qDamage * 3 + wDamage + tDamage + rDamage;
-            return comboDmg;
+            return (pDamage * (3 - qCount)) + (aDamage * (3 - qCount)) + wDamage + tDamage + rDamage + (qDamage * (3 - qCount));
         }
+
+        public static void OnAnimation(Obj_AI_Base unit, GameObjectPlayAnimationEventArgs args)
+        {
+            if (unit.IsMe && args.Animation.Contains("Spell1")) // Spell1 = Q
+            {
+                Console.WriteLine("Spell1");
+                Utility.DelayAction.Add(Config.Item("CancelDelay").GetValue<int>(), delegate { CancelAnimation(); }); // Which one casts first?
+            }
+        }
+
         public static void CancelAnimation()
         {
-            Packet.C2S.Move.Encoded(new Packet.C2S.Move.Struct(Game.CursorPos.X, Game.CursorPos.Y)).Send();
-            Utility.DelayAction.Add(Game.Ping/2, delegate { Orbwalking.ResetAutoAttackTimer(); });
+#if DEBUGANIMATIONCANCEL
+            Console.WriteLine("CancelAnimation()");
+#endif
+            Orbwalking.ResetAutoAttackTimer();
+            
+            var movePos = Game.CursorPos;
+            if (currentTarget.IsValidTarget())
+            {
+                movePos = currentTarget.ServerPosition + (Player.ServerPosition - currentTarget.ServerPosition);
+                movePos.Normalize();
+                movePos *= Player.Distance(currentTarget.ServerPosition) + 50;
+#if DEBUGANIMATIONCANCEL
+                Console.WriteLine("movePos X = " + movePos.X);
+                Console.WriteLine("movePos Y = " + movePos.Y);
+                Console.WriteLine("movePos Z = " + movePos.Z);
+#endif
+            }
+            Packet.C2S.Move.Encoded(new Packet.C2S.Move.Struct(movePos.X, movePos.Y)).Send();
+            //Player.IssueOrder(GameObjectOrder.MoveTo, movePos);
+            
         }
         public static void OnProcessSpell(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
         {
-            //Console.WriteLine("Spellname = " + args.SData.Name);
-            //RivenTriCleave ItemTiamatCleave RivenFeint RivenMartyr
             if (sender.IsMe)
             {
                 var SpellName = args.SData.Name;
                 
                 if (orbwalker.ActiveMode.ToString() == "Combo")
                 {
-                    if (SpellName.Contains("Attack") && qCount > 0)
+                    lastSpell = null;
+                    if (SpellName.Contains("Attack"))
                     {
+                        // This should happen in packet too, but just in case :)
                         if (_tiamat.IsReady() && Player.Distance(currentTarget.ServerPosition) + currentTarget.BoundingRadius <= _tiamat.Range)
                         {
                             nextSpell = null;
@@ -347,9 +497,19 @@ namespace yol0Riven
                     }
                     else if (SpellName == "RivenTriCleave")
                     {
-                        //Utility.DelayAction.Add((int)args.SData.SpellCastTime - Game.Ping/2, delegate { CancelAnimation(); });
+                        //TODO: fiddle with delay until animation cancels correctly
+                        lastCast = Environment.TickCount;
+                        //Utility.DelayAction.Add(Config.Item("CancelDelay").GetValue<int>(), delegate { CancelAnimation(); });
                         nextSpell = null;
-                        if (_tiamat.IsReady() && Player.Distance(currentTarget.ServerPosition) + currentTarget.BoundingRadius <= _tiamat.Range)
+                        lastSpell = _q;
+                        if (qCount < 4 && Player.Distance(currentTarget.ServerPosition) + currentTarget.BoundingRadius < Player.AttackRange + Player.BoundingRadius)
+                        {
+                            nextSpell = null;
+                            UseAttack = true;
+                            return;
+                        }
+                        // Tiamat doesn't cancel Q animation, neither does w
+                        /*if (_tiamat.IsReady() && Player.Distance(currentTarget.ServerPosition) + currentTarget.BoundingRadius <= _tiamat.Range)
                         {
                             nextSpell = null;
                             useTiamat = true;
@@ -359,7 +519,7 @@ namespace yol0Riven
                             nextSpell = null;
                             useTiamat = true;
                         }
-                        else if (_w.IsReady() && Player.Distance(currentTarget.Position) <= _w.Range)
+                        else */if (_w.IsReady() && Player.Distance(currentTarget.ServerPosition) <= _w.Range)
                             nextSpell = _w;
                         else
                         {
@@ -370,20 +530,23 @@ namespace yol0Riven
                     }
                     else if (SpellName == "RivenMartyr")
                     {
-                        if (_q.IsReady() && Player.Distance(currentTarget.ServerPosition) + currentTarget.BoundingRadius <= _q.Range)
+                        // Cancel W animation with Q
+                        if (_q.IsReady() && Player.Distance(currentTarget.ServerPosition) + currentTarget.BoundingRadius < _q.Range)
                             nextSpell = _q;
                     }
                     else if (SpellName == "ItemTiamatCleave")
                     {
-                        if (_w.IsReady())
+                        // Cancel tiamat animation with W or Q
+                        if (_w.IsReady() && Player.Distance(currentTarget.ServerPosition) < _w.Range + currentTarget.BoundingRadius)
                             nextSpell = _w;
-                        else if (_q.IsReady() && Player.Distance(currentTarget.ServerPosition) + currentTarget.BoundingRadius <= _q.Range)
+                        else if (_q.IsReady() && Player.Distance(currentTarget.ServerPosition) + currentTarget.BoundingRadius < _q.Range)
                             nextSpell = _q;
                     }
                     else if (SpellName == "RivenFengShuiEngine")
                     {
 
                         ultiOn = true;
+                        //Cast tiamat to cancel R animation if target is in range, otherwise Q or E
                         if (_tiamat.IsReady() && Player.Distance(currentTarget.ServerPosition) < _tiamat.Range)
                         {
                             nextSpell = null;
@@ -409,7 +572,6 @@ namespace yol0Riven
 
         private static void CastW(Obj_AI_Base target)
         {
-            
             if (_w.IsReady() && target.Distance(Player.ServerPosition) < _w.Range + target.BoundingRadius)
             {
                 _w.Cast();
@@ -441,27 +603,41 @@ namespace yol0Riven
             var useE = _e.IsReady();
             var useQ = _q.IsReady();
 
-            float aRange = Player.AttackRange + target.BoundingRadius;
-            float eRange = target.BoundingRadius + _e.Range;
+            float aRange = Player.AttackRange + Player.BoundingRadius + target.BoundingRadius - 50;
+            float eRange = aRange + _e.Range;
             float qRange = target.BoundingRadius + _q.Range;
             float eqRange = target.BoundingRadius + _q.Range + _e.Range;
-            float distance = Player.Distance(target) + target.BoundingRadius;
+            float distance = Player.Distance(target.ServerPosition);
             if (distance < aRange)
                 return;
+
+            if (_ghostblade.IsReady())
+                _ghostblade.Cast();
 
             //Use Q first, then EQ, then E to try to not waste E if not needed
             if (qCount < 2 && _q.IsReady() && qRange > distance)
             {
+#if DEBUGGAPCLOSE
+                Console.WriteLine("GapClose cond 1");
+#endif
                 _q.Cast(target.ServerPosition);
             }
             else if (qCount < 2 && _q.IsReady() && _e.IsReady() && eqRange > distance)
             {
+#if DEBUGGAPCLOSE
+                Console.WriteLine("GapClose cond 2");
+#endif
                 _e.Cast(target.ServerPosition);
-                Utility.DelayAction.Add(300, delegate { CastQ(target, true); });
+                Utility.DelayAction.Add(500, delegate { CastQ(target, true); });
             } 
             else if (_e.IsReady() && eRange > distance)
             {
+#if DEBUGGAPCLOSE
+                Console.WriteLine("GapClose cond 3");
+#endif
                 _e.Cast(target.ServerPosition);
+                nextSpell = null;
+                UseAttack = true;
             }
            
         }
@@ -472,7 +648,7 @@ namespace yol0Riven
             {
                 foreach (var hero in ObjectManager.Get<Obj_AI_Hero>())
                 {
-                    if (hero.Team != Player.Team && !hero.IsDead && hero.IsVisible && DamageLib.getDmg(hero, DamageLib.SpellType.R) > hero.Health)
+                    if (hero.Team != Player.Team && !hero.IsDead && hero.IsVisible && GetRDamage(hero) > hero.Health)
                     {
                         _r.Cast(hero.ServerPosition);
                     }
