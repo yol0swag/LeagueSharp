@@ -72,7 +72,7 @@ namespace yol0Riven
             Config.AddItem(new MenuItem("DrawRanges", "Draw engage range").SetValue(true));
             Config.AddItem(new MenuItem("CancelDelay", "Animation Cancel Delay").SetValue <Slider>(new Slider(250, 100, 400)));
             
-           
+            
             Orbwalking.BeforeAttack += BeforeAttack;
             Orbwalking.AfterAttack += AfterAttack;
             Obj_AI_Base.OnProcessSpellCast += OnProcessSpell;
@@ -241,6 +241,9 @@ namespace yol0Riven
 #if DEBUGCOMBO
                 Console.WriteLine("nextSpell = _q");
 #endif
+#if DEBUGGAPCLOSE
+                Console.WriteLine("Casting Q in Combo()");
+#endif
                 _q.Cast(target.ServerPosition);
                 nextSpell = null;
             }
@@ -343,7 +346,7 @@ namespace yol0Riven
             var dmg = 0.0;
             if (targetPercentHealthMissing > 75.0f)
             {
-                dmg = minDmg * 2;
+                dmg = minDmg * 3;
             }
             else
             {
@@ -444,7 +447,7 @@ namespace yol0Riven
         {
             if (unit.IsMe && args.Animation.Contains("Spell1")) // Spell1 = Q
             {
-                Console.WriteLine("Spell1");
+                //Console.WriteLine("Spell1");
                 Utility.DelayAction.Add(Config.Item("CancelDelay").GetValue<int>(), delegate { CancelAnimation(); }); // Which one casts first?
             }
         }
@@ -581,16 +584,19 @@ namespace yol0Riven
 
         private static void CastQ(Obj_AI_Base target, bool force = false)
         {
+#if DEBUGGAPCLOSE
+            Console.WriteLine("CastQ()");
+#endif
            if (_q.IsReady())
            {
                if (force)
                {
                    _q.Cast(target.ServerPosition);
                }
-               else
+               else if (qCount < 1)
                {
                    var qRange = target.BoundingRadius + _q.Range;
-                   if (qRange < Player.Distance(target.ServerPosition))
+                   if (qRange > Player.Distance(target.ServerPosition))
                        _q.Cast(target.ServerPosition);
                }
            }
@@ -615,30 +621,31 @@ namespace yol0Riven
                 _ghostblade.Cast();
 
             //Use Q first, then EQ, then E to try to not waste E if not needed
-            if (qCount < 2 && _q.IsReady() && qRange > distance)
+            if (qCount < 2 && _q.IsReady() && qRange < distance && !_e.IsReady())
             {
 #if DEBUGGAPCLOSE
                 Console.WriteLine("GapClose cond 1");
 #endif
                 _q.Cast(target.ServerPosition);
             }
-            else if (qCount < 2 && _q.IsReady() && _e.IsReady() && eqRange > distance)
+            else if (_e.IsReady() && eRange > distance && aRange + 20 > distance)
             {
 #if DEBUGGAPCLOSE
                 Console.WriteLine("GapClose cond 2");
 #endif
                 _e.Cast(target.ServerPosition);
-                Utility.DelayAction.Add(500, delegate { CastQ(target, true); });
-            } 
-            else if (_e.IsReady() && eRange > distance)
+                nextSpell = null;
+                UseAttack = true;
+            }
+            else if (qCount < 1 && _q.IsReady() && _e.IsReady() && eqRange > distance)
             {
 #if DEBUGGAPCLOSE
                 Console.WriteLine("GapClose cond 3");
 #endif
                 _e.Cast(target.ServerPosition);
-                nextSpell = null;
-                UseAttack = true;
-            }
+                Utility.DelayAction.Add(500, delegate { CastQ(target); });
+            } 
+            
            
         }
 
@@ -648,7 +655,7 @@ namespace yol0Riven
             {
                 foreach (var hero in ObjectManager.Get<Obj_AI_Hero>())
                 {
-                    if (hero.Team != Player.Team && !hero.IsDead && hero.IsVisible && GetRDamage(hero) > hero.Health)
+                    if (hero.Team != Player.Team && !hero.IsDead && hero.IsVisible && GetRDamage(hero) - 30 > hero.Health && Player.Distance(hero.ServerPosition) > 50)
                     {
                         _r.Cast(hero.ServerPosition);
                     }
