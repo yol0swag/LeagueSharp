@@ -40,7 +40,7 @@ namespace yol0Riven
         public static Orbwalking.Orbwalker orbwalker;
 
         public static Spell _q = new Spell(SpellSlot.Q, 260);
-        public static Spell _w = new Spell(SpellSlot.W, 260);
+        public static Spell _w = new Spell(SpellSlot.W, 250);
         public static Spell _e = new Spell(SpellSlot.E, 325);
         public static Spell _r = new Spell(SpellSlot.R, 900);
         public static Items.Item _tiamat = new Items.Item(3077, 400);
