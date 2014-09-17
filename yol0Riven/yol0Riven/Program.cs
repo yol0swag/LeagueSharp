@@ -351,6 +351,7 @@ namespace yol0Riven
 #if DEBUGCOMBO
                 Console.WriteLine("UseAttack = true");
 #endif
+                Orbwalking.LastAATick = Environment.TickCount + Game.Ping / 2;
                 Player.IssueOrder(GameObjectOrder.AttackUnit, currentTarget);
             }
 
@@ -420,6 +421,20 @@ namespace yol0Riven
                         }   
                     }
                 }
+                else if (args.PacketData[0] == 0x34)
+                {
+
+                    GamePacket packet = new GamePacket(args.PacketData);
+                    packet.Position = 9;
+                    int action = packet.ReadByte();
+                    packet.Position = 1;
+                    int sourceId = packet.ReadInteger();
+                    if (action == 17 && sourceId == Player.NetworkId)
+                    {
+                        Console.WriteLine("Cancelled attack!");
+                    }
+
+                }
                 else if (args.PacketData[0] == 0x61) //move
                 {
                     
@@ -430,6 +445,7 @@ namespace yol0Riven
                     {
                         if (currentTarget != null && ProcessPackets && orbwalker.ActiveMode.ToString() == "Combo")
                         {
+                            //Orbwalking.LastAATick = Environment.TickCount - Game.Ping / 2;
                             Packet.C2S.Move.Encoded(new Packet.C2S.Move.Struct(0, 0, 3, currentTarget.NetworkId)).Send();
                             //Player.IssueOrder(GameObjectOrder.AttackUnit, currentTarget); //packet seems to work faster
                             Orbwalking.ResetAutoAttackTimer();
@@ -442,7 +458,7 @@ namespace yol0Riven
                         }
                     }
                 }
-                else if (args.PacketData[0] == 0x38) //animation
+                else if (args.PacketData[0] == 0x38) //animation2
                 {
                     
                     GamePacket packet = new GamePacket(args.PacketData);
@@ -453,7 +469,7 @@ namespace yol0Riven
                         if (ProcessPackets)
                         {
                             args.Process = false;
-                            CancelAnimation();
+                            CancelAnimation(); // wait until recv packet 0x61
                             Orbwalking.ResetAutoAttackTimer();
                         }
                     }
