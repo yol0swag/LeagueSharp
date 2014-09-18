@@ -287,6 +287,7 @@ namespace yol0Riven
             }
             else
             {
+                orbwalker.SetMovement(true);
                 if (qCount != 0 && lastQCast + (3650 - Game.Ping / 2) < Environment.TickCount && Config.SubMenu("Misc").Item("QKeepAlive").GetValue<bool>())
                 {
                     _q.Cast(Game.CursorPos, true);
