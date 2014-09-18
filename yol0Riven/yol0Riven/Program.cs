@@ -239,6 +239,7 @@ namespace yol0Riven
                 {
                     if (Player.Distance(pos.pA) < closest || Player.Distance(pos.pB) < closest)
                     {
+                        Console.WriteLine("pA.x = " + pos.pA.X);
                         busy = true;
                         if (Player.Distance(pos.pA) < Player.Distance(pos.pB))
                         {
@@ -257,6 +258,7 @@ namespace yol0Riven
                 }
                 if (busy)
                 {
+                  
                     directionVector.X = startPoint.X - endPoint.X;
                     directionVector.Y = startPoint.Y - endPoint.Y;
                     Player.IssueOrder(GameObjectOrder.HoldPosition, Player.ServerPosition);
@@ -898,14 +900,11 @@ namespace yol0Riven
             //Console.WriteLine("PopulateList()");
             jumpPositions.Add(new WallHopPosition(new SharpDX.Vector3(6393.7299804688f, 8341.7451171875f, -63.87451171875f), new SharpDX.Vector3(6612.1625976563f, 8574.7412109375f, 56.018413543701f)));
             jumpPositions.Add(new WallHopPosition(new SharpDX.Vector3(7041.7885742188f, 8810.1787109375f, 0f), new SharpDX.Vector3(7296.0341796875f, 9056.4638671875f, 55.610824584961f)));
-            jumpPositions.Add(new WallHopPosition(new SharpDX.Vector3(4546.0258789063f, 2548.966796875f, 54.257415771484f), new SharpDX.Vector3(4185.0786132813f, 2526.5520019531f, 109.35539245605f)));
             jumpPositions.Add(new WallHopPosition(new SharpDX.Vector3(2805.4074707031f, 6140.130859375f, 55.182941436768f), new SharpDX.Vector3(2614.3215332031f, 5816.9438476563f, 60.193073272705f)));
             jumpPositions.Add(new WallHopPosition(new SharpDX.Vector3(6696.486328125f, 5377.4013671875f, 61.310482025146f), new SharpDX.Vector3(6868.6918945313f, 5698.1455078125f, 55.616455078125f)));
-            jumpPositions.Add(new WallHopPosition(new SharpDX.Vector3(1677.9854736328f, 8319.9345703125f, 54.923847198486f), new SharpDX.Vector3(1270.2786865234f, 8286.544921875f, 50.334892272949f)));
             jumpPositions.Add(new WallHopPosition(new SharpDX.Vector3(2809.3254394531f, 10178.6328125f, -58.759708404541f), new SharpDX.Vector3(2553.8962402344f, 9974.4677734375f, 53.364395141602f)));
             jumpPositions.Add(new WallHopPosition(new SharpDX.Vector3(5102.642578125f, 10322.375976563f, -62.845260620117f), new SharpDX.Vector3(5483f, 10427f, 54.5009765625f)));
             jumpPositions.Add(new WallHopPosition(new SharpDX.Vector3(6000.2373046875f, 11763.544921875f, 39.544124603271f), new SharpDX.Vector3(6056.666015625f, 11388.752929688f, 54.385917663574f)));
-            jumpPositions.Add(new WallHopPosition(new SharpDX.Vector3(1742.34375f, 7647.1557617188f, 53.561042785645f), new SharpDX.Vector3(1884.5321044922f, 7995.1459960938f, 54.930736541748f)));
             jumpPositions.Add(new WallHopPosition(new SharpDX.Vector3(3319.087890625f, 7472.4760742188f, 55.027889251709f), new SharpDX.Vector3(3388.0522460938f, 7101.2568359375f, 54.486026763916f)));
             jumpPositions.Add(new WallHopPosition(new SharpDX.Vector3(3989.9423828125f, 7929.3422851563f, 51.94282913208f), new SharpDX.Vector3(3671.623046875f, 7723.146484375f, 53.906265258789f)));
             jumpPositions.Add(new WallHopPosition(new SharpDX.Vector3(4936.8452148438f, 10547.737304688f, -63.064865112305f), new SharpDX.Vector3(5156.7397460938f, 10853.216796875f, 52.951190948486f)));
@@ -951,7 +950,6 @@ namespace yol0Riven
             jumpPositions.Add(new WallHopPosition(new SharpDX.Vector3(8698.263671875f, 3783.1169433594f, 57.178703308105f), new SharpDX.Vector3(9041f, 3975f, -63.242683410645f)));
             jumpPositions.Add(new WallHopPosition(new SharpDX.Vector3(9063f, 3401f, 68.192077636719f), new SharpDX.Vector3(9275.0751953125f, 3712.8935546875f, -63.257461547852f)));
             jumpPositions.Add(new WallHopPosition(new SharpDX.Vector3(12064.340820313f, 6424.11328125f, 54.830627441406f), new SharpDX.Vector3(12267.9375f, 6742.9453125f, 54.83561706543f)));
-            jumpPositions.Add(new WallHopPosition(new SharpDX.Vector3(12797.838867188f, 5814.9653320313f, 58.281986236572f), new SharpDX.Vector3(12422.740234375f, 5860.931640625f, 54.815074920654f)));
             jumpPositions.Add(new WallHopPosition(new SharpDX.Vector3(11913.165039063f, 5373.34375f, 54.050819396973f), new SharpDX.Vector3(11569.1953125f, 5211.7143554688f, 57.787326812744f)));
             jumpPositions.Add(new WallHopPosition(new SharpDX.Vector3(7324.2783203125f, 1461.2199707031f, 52.594970703125f), new SharpDX.Vector3(7357.3852539063f, 1837.4309082031f, 54.282878875732f)));
         }   
