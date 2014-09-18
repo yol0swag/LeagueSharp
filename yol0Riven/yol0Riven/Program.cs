@@ -110,7 +110,7 @@ namespace yol0Riven
                 Config.SubMenu("Draw").AddItem(new MenuItem("DrawJumps", "Draw Jump spots (always)").SetValue(false));
                 Config.SubMenu("Draw").AddItem(new MenuItem("DrawJumps2", "Draw Jump spots").SetValue(new KeyBind(71, KeyBindType.Press)));
                 Config.SubMenu("Draw").AddItem(new MenuItem("DrawJumpsRange", "Draw Jumps Range").SetValue(new Slider(1000, 200, 10000)));
-                Config.SubMenu("Draw").AddItem(new MenuItem("WallJump", "Wall Jump").SetValue(new KeyBind(71, KeyBindType.Press)));
+                Config.AddItem(new MenuItem("WallJump", "Wall Jump").SetValue(new KeyBind(71, KeyBindType.Press)));
 
                 PopulateList();
             }
