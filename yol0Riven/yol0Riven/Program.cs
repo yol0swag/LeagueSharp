@@ -50,6 +50,7 @@ namespace yol0Riven
 
         private static int qCount = 0; // 
         private static int pCount = 0; // passive stacks
+        private static int lastQCast = 0;
 
         private static bool ultiOn = false;
         private static bool ultiReady = false;
@@ -61,6 +62,7 @@ namespace yol0Riven
         private static bool useTiamat = false;
         private static bool IsKSing = false;
         private static Obj_AI_Base currentTarget = null;
+        private static int lastGapClose = 0;
 
         public static int minRange = 100;
         public static int displayRange = 1000;
@@ -102,6 +104,7 @@ namespace yol0Riven
             Config.AddSubMenu(new Menu("Misc", "Misc"));
             Config.AddSubMenu(new Menu("Draw Settings", "Draw"));
             Config.SubMenu("Combo").AddItem(new MenuItem("UseUlti", "Use Ultimate in Combo").SetValue(true));
+            Config.SubMenu("Combo").AddItem(new MenuItem("UseQGapClose", "Use Q to gapclose").SetValue(true));
             Config.SubMenu("KS").AddItem(new MenuItem("KillStealRActivate", "Activate ulti for KS").SetValue(false));
             Config.SubMenu("KS").AddItem(new MenuItem("KillStealR", "KS with R2").SetValue(true));
             Config.SubMenu("KS").AddItem(new MenuItem("KillStealQ", "KS with Q").SetValue(true));
@@ -109,6 +112,7 @@ namespace yol0Riven
             Config.SubMenu("KS").AddItem(new MenuItem("KillStealT", "KS with Tiamat").SetValue(true));
             Config.SubMenu("Misc").AddItem(new MenuItem("AntiGapcloser", "Auto W Gapclosers").SetValue(true));
             Config.SubMenu("Misc").AddItem(new MenuItem("Interrupt", "Auto W Interruptible Spells").SetValue(true));
+            Config.SubMenu("Misc").AddItem(new MenuItem("QKeepAlive", "Keep Q Alive").SetValue(true));
             Config.SubMenu("Draw").AddItem(new MenuItem("DrawRanges", "Draw engage range").SetValue(true));
             Config.SubMenu("Draw").AddItem(new MenuItem("DrawTarget", "Draw current target").SetValue(true));
             if (IsSR)
@@ -122,7 +126,8 @@ namespace yol0Riven
 
             //let prediction hit as many targets as possible
             _r.SetSkillshot(0.25f, 60f, 2200, false, SkillshotType.SkillshotCone);
-
+            _q.SetSkillshot(0, 55, 5000, false, SkillshotType.SkillshotCone);
+            _e.SetSkillshot(0, 0, 1450, false, SkillshotType.SkillshotLine);
             Orbwalking.BeforeAttack += BeforeAttack;
             Orbwalking.AfterAttack += AfterAttack;
             Obj_AI_Base.OnProcessSpellCast += OnProcessSpell;
@@ -190,7 +195,7 @@ namespace yol0Riven
         {
             if (Config.SubMenu("Draw").Item("DrawRanges").GetValue<bool>())
             {
-                Utility.DrawCircle(Player.Position, _e.Range + _q.Range, System.Drawing.Color.Blue);
+                Utility.DrawCircle(Player.Position, (Config.SubMenu("Combo").Item("UseQGapClose").GetValue<bool>() ? _q.Range + _e.Range : _e.Range), System.Drawing.Color.Blue);
             }
             if (IsSR && (Config.SubMenu("Draw").Item("DrawJumps").GetValue<bool>() || Config.SubMenu("Draw").Item("DrawJumps2").GetValue<KeyBind>().Active))
             {
@@ -211,9 +216,6 @@ namespace yol0Riven
                 Utility.DrawCircle(currentTarget.ServerPosition, currentTarget.BoundingRadius + 25, System.Drawing.Color.Red, 6);
                 Utility.DrawCircle(currentTarget.ServerPosition, currentTarget.BoundingRadius + 45, System.Drawing.Color.Red, 7);
             }
-
-            
-
         }
 
         public static void OnEnemyGapCloser(ActiveGapcloser gapcloser)
@@ -296,11 +298,18 @@ namespace yol0Riven
                 }
 
             }
+            else
+            {
+                if (qCount != 0 && lastQCast + (3675 - Game.Ping / 2) < Environment.TickCount && Config.SubMenu("Misc").Item("QKeepAlive").GetValue<bool>())
+                {
+                    _q.Cast(Game.CursorPos);
+                }
+            }
         }
 
         private static void AcquireTarget()
         {
-            currentTarget = SimpleTs.GetTarget(_e.Range + _q.Range * 3 + Player.AttackRange, SimpleTs.DamageType.Physical);
+            currentTarget = SimpleTs.GetTarget(_e.Range + _q.Range + Player.AttackRange, SimpleTs.DamageType.Physical);
         }
 
         public static void AfterAttack(Obj_AI_Base hero, Obj_AI_Base target)
@@ -431,7 +440,11 @@ namespace yol0Riven
                     int sourceId = packet.ReadInteger();
                     if (action == 17 && sourceId == Player.NetworkId)
                     {
-                        Console.WriteLine("Cancelled attack!");
+                        if (ProcessPackets)
+                        {
+                            CancelAnimation();
+                            Orbwalking.ResetAutoAttackTimer();
+                        }
                     }
 
                 }
@@ -559,7 +572,7 @@ namespace yol0Riven
                 dmg = minDmg + minDmg * (0.0267 * targetPercentHealthMissing);
             }
             
-            var realDmg = DamageLib.CalcPhysicalDmg(dmg, target);
+            var realDmg = DamageLib.CalcPhysicalDmg(dmg - 20, target);
 #if DEBUGRDAMAGE
             Console.WriteLine("R minDmg = " + minDmg);
             Console.WriteLine("R pctHealth = " + targetPercentHealthMissing);
@@ -661,6 +674,11 @@ namespace yol0Riven
                         _tiamat.Cast();
                     if (_tiamat2.IsReady())
                         _tiamat2.Cast();
+                }
+
+                if (SpellName == "RivenTriCleave")
+                {
+                    lastQCast = Environment.TickCount;
                 }
 
                 if (orbwalker.ActiveMode.ToString() == "Combo")
@@ -772,17 +790,19 @@ namespace yol0Riven
            }
         }
 
-
-
         private static void GapClose(Obj_AI_Base target)
         {
             var useE = _e.IsReady();
-            var useQ = _q.IsReady();
+            var useQ = _q.IsReady() && qCount < 2 && Config.SubMenu("Combo").Item("UseQGapClose").GetValue<bool>();
+            if (lastGapClose + 300 > Environment.TickCount && lastGapClose != 0)
+                return;
+                
+            lastGapClose = Environment.TickCount;
 
             float aRange = Player.AttackRange + Player.BoundingRadius + target.BoundingRadius - 50;
             float eRange = aRange + _e.Range;
-            float qRange = target.BoundingRadius + _q.Range;
-            float eqRange = target.BoundingRadius + _q.Range + _e.Range;
+            float qRange = _q.Range + aRange;
+            float eqRange = _q.Range + _e.Range;
             float distance = Player.Distance(target.ServerPosition);
             if (distance < aRange)
                 return;
@@ -790,33 +810,25 @@ namespace yol0Riven
             if (_ghostblade.IsReady())
                 _ghostblade.Cast();
 
-            //Use Q first, then EQ, then E to try to not waste E if not needed
-            if (qCount < 2 && _q.IsReady() && qRange + aRange < distance && !_e.IsReady())
+            if (useQ && qCount < 2 && _q.IsReady() && qRange > distance && !_e.IsReady())
             {
-#if DEBUGGAPCLOSE
-                Console.WriteLine("GapClose cond 1");
-#endif
-                _q.Cast(target.ServerPosition);
+                var noRComboDmg = DamageCalcNoR(target);
+                if (_r.IsReady() && !ultiReady && noRComboDmg < target.Health && Config.SubMenu("Combo").Item("UseUlti").GetValue<bool>())
+                {
+                    _r.Cast();
+                }
+                _q.Cast(target.ServerPosition, true);
             }
-            else if (_e.IsReady() && eRange + aRange < distance)
+            else if (_e.IsReady() && eRange + aRange > distance)
             {
-#if DEBUGGAPCLOSE
-                Console.WriteLine("GapClose cond 2");
-#endif
-                _e.Cast(target.ServerPosition);
-                nextSpell = null;
-                UseAttack = true;
+                var pred = Prediction.GetPrediction(target, 0, 0, 1450);
+                _e.Cast(pred.CastPosition);
             }
-            else if (qCount < 1 && _q.IsReady() && _e.IsReady() && eqRange > distance)
+            else if (useQ && _e.IsReady() && _q.IsReady() && eqRange + aRange > distance)
             {
-#if DEBUGGAPCLOSE
-                Console.WriteLine("GapClose cond 3");
-#endif
-                _e.Cast(target.ServerPosition, true);
-                Utility.DelayAction.Add(500, delegate { CastQ(target); });
-            } 
-            
-           
+                var pred = Prediction.GetPrediction(target, 0, 0, 1450);
+                _e.Cast(pred.CastPosition);
+            }
         }
 
         private static void KillSecure()
