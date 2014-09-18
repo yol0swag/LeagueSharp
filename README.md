@@ -16,8 +16,7 @@ Features -
 <li><b>Gapclose Options</b> - Use E and Q to reach the enemy without wasting damage</li>
 </ul>
 
-Tip - <b>Buy a Tiamat</b>
-It speeds up combo so much and gives you a big spike in damage
+Tip - <b>Buy a Tiamat</b> - It speeds up combo so much and gives you a big spike in damage
 
 If you find any bugs or have any suggestions, feel free to either open an issue here on GitHub or find me on the LeagueSharp IRC (yol0)
 
