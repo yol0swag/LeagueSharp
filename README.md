@@ -18,4 +18,5 @@ Features -
 
 
 If you find any bugs or have any suggestions, feel free to either open an issue here on GitHub or find me on the LeagueSharp IRC (yol0)
+
 Happy pwning
