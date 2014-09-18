@@ -1,21 +1,12 @@
-﻿//#define DEBUGCALC
-//#define DEBUGCOMBO
-//#define DEBUGPACKETS
-//#define DEBUGGAPCLOSE
-//#define DEBUGANIMATIONCANCEL
-//#define DEBUGRDAMAGE
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
-using System.Globalization;
-using System.Diagnostics;
+using Color = System.Drawing.Color;
 using LeagueSharp;
 using LeagueSharp.Common;
-using System.Drawing;
 using SharpDX;
-using SharpDX.Direct3D9;
+
 
 /* yol0Riven - by yol0swag  */
 // wallhopper by blackiechan - adapted for L#
@@ -113,34 +104,33 @@ namespace yol0Riven
             Config.SubMenu("Misc").AddItem(new MenuItem("AntiGapcloser", "Auto W Gapclosers").SetValue(true));
             Config.SubMenu("Misc").AddItem(new MenuItem("Interrupt", "Auto W Interruptible Spells").SetValue(true));
             Config.SubMenu("Misc").AddItem(new MenuItem("QKeepAlive", "Keep Q Alive").SetValue(true));
-            Config.SubMenu("Draw").AddItem(new MenuItem("DrawRanges", "Draw engage range").SetValue(true));
-            Config.SubMenu("Draw").AddItem(new MenuItem("DrawTarget", "Draw current target").SetValue(true));
+            Config.SubMenu("Draw").AddItem(new MenuItem("DrawRanges", "Draw engage range").SetValue(new Circle(true, Color.FromKnownColor(System.Drawing.KnownColor.Green))));
+            Config.SubMenu("Draw").AddItem(new MenuItem("DrawTarget", "Draw current target").SetValue(new Circle(true, Color.FromKnownColor(System.Drawing.KnownColor.Red))));
             if (IsSR)
             {
                 Config.SubMenu("Draw").AddItem(new MenuItem("DrawJumps", "Draw Jump spots (always)").SetValue(false));
                 Config.SubMenu("Draw").AddItem(new MenuItem("DrawJumps2", "Draw Jump spots").SetValue(new KeyBind(71, KeyBindType.Press)));
-                Config.AddItem(new MenuItem("WallJump", "Wall Jump").SetValue(new KeyBind(71, KeyBindType.Press)));
+                Config.SubMenu("Draw").AddItem(new MenuItem("DrawJumpsRange", "Draw Jumps Range").SetValue(new Slider(1000, 200, 10000)));
+                Config.SubMenu("Draw").AddItem(new MenuItem("WallJump", "Wall Jump").SetValue(new KeyBind(71, KeyBindType.Press)));
 
                 PopulateList();
             }
 
-            //let prediction hit as many targets as possible
             _r.SetSkillshot(0.25f, 60f, 2200, false, SkillshotType.SkillshotCone);
-            _q.SetSkillshot(0, 55, 5000, false, SkillshotType.SkillshotCone);
             _e.SetSkillshot(0, 0, 1450, false, SkillshotType.SkillshotLine);
+
             Orbwalking.BeforeAttack += BeforeAttack;
-            Orbwalking.AfterAttack += AfterAttack;
             Obj_AI_Base.OnProcessSpellCast += OnProcessSpell;
             Obj_AI_Base.OnPlayAnimation += OnAnimation;
             Game.OnGameUpdate += OnGameUpdate;
             Game.OnGameUpdate += Buffs_GameUpdate;
-            if (IsSR)
-                Game.OnGameUpdate += Wallhopper_OnGameUpdate;
             Game.OnGameProcessPacket += OnGameProcessPacket;
             Drawing.OnDraw += OnDraw;
             AntiGapcloser.OnEnemyGapcloser += OnEnemyGapCloser;
             Interrupter.OnPosibleToInterrupt += OnPossibleToInterrupt;
 
+            if (IsSR)
+                Game.OnGameUpdate += Wallhopper_OnGameUpdate;
         }
 
         private static void Buffs_GameUpdate(EventArgs args)
@@ -190,31 +180,29 @@ namespace yol0Riven
             
         }
 
-
         private static void OnDraw(EventArgs args)
         {
-            if (Config.SubMenu("Draw").Item("DrawRanges").GetValue<bool>())
+            if (Config.SubMenu("Draw").Item("DrawRanges").GetValue<Circle>().Active)
             {
-                Utility.DrawCircle(Player.Position, (Config.SubMenu("Combo").Item("UseQGapClose").GetValue<bool>() ? _q.Range + _e.Range : _e.Range), System.Drawing.Color.Blue);
+                Utility.DrawCircle(Player.Position, (Config.SubMenu("Combo").Item("UseQGapClose").GetValue<bool>() ? _q.Range + _e.Range : _e.Range), Config.SubMenu("Draw").Item("DrawRanges").GetValue<Circle>().Color);
             }
             if (IsSR && (Config.SubMenu("Draw").Item("DrawJumps").GetValue<bool>() || Config.SubMenu("Draw").Item("DrawJumps2").GetValue<KeyBind>().Active))
             {
                 foreach (WallHopPosition pos in jumpPositions)
                 {
 
-                    if (Player.Distance(pos.pA) <= displayRange || Player.Distance(pos.pB) <= displayRange)
+                    if (Player.Distance(pos.pA) <= Config.SubMenu("Draw").Item("DrawJumpsRange").GetValue<Slider>().Value || Player.Distance(pos.pB) <= Config.SubMenu("Draw").Item("DrawJumpsRange").GetValue<Slider>().Value)
                     {
                         Utility.DrawCircle(pos.pA, minRange, System.Drawing.Color.Green);
                         Utility.DrawCircle(pos.pB, minRange, System.Drawing.Color.GreenYellow);
-                        
                     }
                 }
             }
-            if (Config.SubMenu("Draw").Item("DrawTarget").GetValue<bool>())
+            if (Config.SubMenu("Draw").Item("DrawTarget").GetValue<Circle>().Active)
             {
-                Utility.DrawCircle(currentTarget.ServerPosition, currentTarget.BoundingRadius + 10, System.Drawing.Color.Red, 5);
-                Utility.DrawCircle(currentTarget.ServerPosition, currentTarget.BoundingRadius + 25, System.Drawing.Color.Red, 6);
-                Utility.DrawCircle(currentTarget.ServerPosition, currentTarget.BoundingRadius + 45, System.Drawing.Color.Red, 7);
+                Utility.DrawCircle(currentTarget.ServerPosition, currentTarget.BoundingRadius + 10, Config.SubMenu("Draw").Item("DrawTarget").GetValue<Circle>().Color, 5);
+                Utility.DrawCircle(currentTarget.ServerPosition, currentTarget.BoundingRadius + 25, Config.SubMenu("Draw").Item("DrawTarget").GetValue<Circle>().Color, 6);
+                Utility.DrawCircle(currentTarget.ServerPosition, currentTarget.BoundingRadius + 45, Config.SubMenu("Draw").Item("DrawTarget").GetValue<Circle>().Color, 7);
             }
         }
 
@@ -239,7 +227,6 @@ namespace yol0Riven
                 {
                     if (Player.Distance(pos.pA) < closest || Player.Distance(pos.pB) < closest)
                     {
-                        Console.WriteLine("pA.x = " + pos.pA.X);
                         busy = true;
                         if (Player.Distance(pos.pA) < Player.Distance(pos.pB))
                         {
@@ -258,7 +245,6 @@ namespace yol0Riven
                 }
                 if (busy)
                 {
-                  
                     directionVector.X = startPoint.X - endPoint.X;
                     directionVector.Y = startPoint.Y - endPoint.Y;
                     Player.IssueOrder(GameObjectOrder.HoldPosition, Player.ServerPosition);
@@ -314,11 +300,6 @@ namespace yol0Riven
             currentTarget = SimpleTs.GetTarget(_e.Range + _q.Range + Player.AttackRange, SimpleTs.DamageType.Physical);
         }
 
-        public static void AfterAttack(Obj_AI_Base hero, Obj_AI_Base target)
-        {
-            //orbwalker.SetMovement(true);
-        }
-
         public static void BeforeAttack(Orbwalking.BeforeAttackEventArgs args)
         {
             // orbwalker cancels autos sometimes, fucks up DPS bad
@@ -329,26 +310,16 @@ namespace yol0Riven
         public static void Combo(Obj_AI_Base target)
         {
             var noRComboDmg = DamageCalcNoR(target);
-            var RComboDmg = DamageCalcR(target);
-#if DEBUGCALC
-            Console.WriteLine("No R Damage: " + noRComboDmg);
-            Console.WriteLine("R Damage: " + RComboDmg);
-#endif
-
             if (_r.IsReady() && !ultiReady && noRComboDmg < target.Health && Config.SubMenu("Combo").Item("UseUlti").GetValue<bool>())
             {
                 _r.Cast();
             }
 
-
-            if (!(_tiamat.IsReady() || _tiamat2.IsReady()) && !_q.IsReady())
-                CastW(target);
+            if (!(_tiamat.IsReady() || _tiamat2.IsReady()) && !_q.IsReady() && _w.IsReady() && currentTarget.IsValidTarget(_w.Range))
+                _w.Cast();
 
             if (nextSpell == null && useTiamat == true)
             {
-#if DEBUGCOMBO
-                Console.WriteLine("UseTiamat = true");
-#endif
                 if (_tiamat.IsReady())
                     _tiamat.Cast();
                 else if (_tiamat2.IsReady())
@@ -359,38 +330,23 @@ namespace yol0Riven
 
             if (nextSpell == null && UseAttack == true)
             {
-#if DEBUGCOMBO
-                Console.WriteLine("UseAttack = true");
-#endif
                 Orbwalking.LastAATick = Environment.TickCount + Game.Ping / 2;
                 Player.IssueOrder(GameObjectOrder.AttackUnit, currentTarget);
             }
 
             if (nextSpell == _q)
             {
-#if DEBUGCOMBO
-                Console.WriteLine("nextSpell = _q");
-#endif
-#if DEBUGGAPCLOSE
-                Console.WriteLine("Casting Q in Combo()");
-#endif
                 _q.Cast(target.Position, true);
                 nextSpell = null;
             }
 
             if (nextSpell == _w)
             {
-#if DEBUGCOMBO
-                Console.WriteLine("nextSpell = _w");
-#endif
                 _w.Cast();
             }
 
             if (nextSpell == _e)
             {
-#if DEBUGCOMBO
-                Console.WriteLine("nextSpell = _e");
-#endif
                 _e.Cast(currentTarget.ServerPosition);
             }
         }
@@ -411,22 +367,25 @@ namespace yol0Riven
                         return;
 
                     Obj_AI_Base target = ObjectManager.GetUnitByNetworkId<Obj_AI_Base>(targetId);
-#if DEBUGPACKETS
-                    Console.WriteLine("DamageType = " + damageType);
-#endif
                     if (orbwalker.ActiveMode.ToString() == "Combo")
                     {
-                        //12 = basic attack, 3 = ?, 11 = crit attack
+                        //12 = basic attack, 3 = ?, 11 = crit attack, 4 = spell
                         if (damageType == 12 || damageType == 3 || damageType == 11) 
                         {
-                            if (_tiamat.IsReady() && Player.Distance(currentTarget.ServerPosition) < _tiamat.Range)
+                            if (_tiamat.IsReady() && currentTarget.IsValidTarget(_tiamat.Range))
                             {
                                 _tiamat.Cast();
-                            } else if (_tiamat2.IsReady() && Player.Distance(currentTarget.ServerPosition) < _tiamat2.Range)
+                            } else if (_tiamat2.IsReady() && currentTarget.IsValidTarget(_tiamat2.Range))
                             {
                                 _tiamat2.Cast();
+                            } else if (_w.IsReady() && currentTarget.IsValidTarget(_w.Range) && qCount != 0)
+                            { 
+
+                                nextSpell = _w; 
                             } else
-                            { nextSpell = _q; }
+                            {
+                                nextSpell = _q;
+                            }
                             UseAttack = false;
                             orbwalker.SetMovement(true);
                         }   
@@ -460,9 +419,7 @@ namespace yol0Riven
                     {
                         if (currentTarget != null && ProcessPackets && orbwalker.ActiveMode.ToString() == "Combo")
                         {
-                            //Orbwalking.LastAATick = Environment.TickCount - Game.Ping / 2;
                             Packet.C2S.Move.Encoded(new Packet.C2S.Move.Struct(0, 0, 3, currentTarget.NetworkId)).Send();
-                            //Player.IssueOrder(GameObjectOrder.AttackUnit, currentTarget); //packet seems to work faster
                             Orbwalking.ResetAutoAttackTimer();
                             ProcessPackets = false;
                         }
@@ -489,29 +446,6 @@ namespace yol0Riven
                         }
                     }
                 }
-                /*else if (args.PacketData[0] == 0xFE) //attack started, auto use tiamat
-                {
-                    if (orbwalker.ActiveMode.ToString() == "Combo")
-                    {
-                        GamePacket packet = new GamePacket(args.PacketData);
-                        packet.Position = 1;
-                        var sourceId = packet.ReadInteger();
-                        if (sourceId == Player.NetworkId)
-                        {
-                            if (_tiamat.IsReady())
-                            {
-                                //Utility.DelayAction.Add(Game.Ping, delegate { _tiamat.Cast(); });
-                                //Orbwalking.ResetAutoAttackTimer();
-                            }
-                            if (_tiamat2.IsReady())
-                            {
-                                //Utility.DelayAction.Add(Game.Ping, delegate { _tiamat2.Cast(); });
-                                //Orbwalking.ResetAutoAttackTimer();
-                            }
-
-                        }
-                    }
-                }*/
             }
             catch (Exception ex)
             {
@@ -533,25 +467,14 @@ namespace yol0Riven
 
         public static void CancelAnimation()
         {
-#if DEBUGANIMATIONCANCEL
-            Console.WriteLine("CancelAnimation()");
-#endif
-
-
             var movePos = Game.CursorPos;
             if (currentTarget.IsValidTarget(600))
             {
                 movePos = currentTarget.ServerPosition + (Player.ServerPosition - currentTarget.ServerPosition);
                 movePos.Normalize();
                 movePos *= Player.Distance(currentTarget.ServerPosition) + 55;
-#if DEBUGANIMATIONCANCEL
-                Console.WriteLine("movePos X = " + movePos.X);
-                Console.WriteLine("movePos Y = " + movePos.Y);
-                Console.WriteLine("movePos Z = " + movePos.Z);
-#endif
             }
             //Packet.C2S.Move.Encoded(new Packet.C2S.Move.Struct(movePos.X, movePos.Y)).Send();
-            //Orbwalking.ResetAutoAttackTimer();
             Player.IssueOrder(GameObjectOrder.MoveTo, movePos);
 
         }
@@ -575,13 +498,6 @@ namespace yol0Riven
             }
             
             var realDmg = DamageLib.CalcPhysicalDmg(dmg - 20, target);
-#if DEBUGRDAMAGE
-            Console.WriteLine("R minDmg = " + minDmg);
-            Console.WriteLine("R pctHealth = " + targetPercentHealthMissing);
-            Console.WriteLine("R predDmg = " + dmg);
-            Console.WriteLine("R Damage = " + realDmg);
-            Console.WriteLine("Cankill = " + (realDmg > target.Health));
-#endif
             return realDmg;
             
         }
@@ -689,12 +605,12 @@ namespace yol0Riven
                     if (SpellName.Contains("Attack"))
                     {
                         // This should happen in packet too, but just in case :)
-                        if (_tiamat.IsReady() && Player.Distance(currentTarget.ServerPosition) + currentTarget.BoundingRadius <= _tiamat.Range)
+                        if (_tiamat.IsReady() && currentTarget.IsValidTarget(_tiamat.Range))
                         {
                             nextSpell = null;
                             useTiamat = true;
                         }
-                        else if (_tiamat2.IsReady() && Player.Distance(currentTarget.ServerPosition) + currentTarget.BoundingRadius <= _tiamat2.Range)
+                        else if (_tiamat2.IsReady() && currentTarget.IsValidTarget(_tiamat2.Range))
                         {
                             nextSpell = null;
                             useTiamat = true;
@@ -724,7 +640,7 @@ namespace yol0Riven
                     else if (SpellName == "RivenMartyr")
                     {
                         // Cancel W animation with Q
-                        if (_q.IsReady() && Player.Distance(currentTarget.ServerPosition) + currentTarget.BoundingRadius < _q.Range)
+                        if (_q.IsReady() && currentTarget.IsValidTarget(_q.Range))
                             nextSpell = _q;
                     }
                     else if (SpellName == "ItemTiamatCleave")
@@ -732,7 +648,7 @@ namespace yol0Riven
                         // Cancel tiamat animation with W or Q
                         if (_w.IsReady() && currentTarget.IsValidTarget(_w.Range))
                             nextSpell = _w;
-                        else if (_q.IsReady() && Player.Distance(currentTarget.ServerPosition) + currentTarget.BoundingRadius < _q.Range)
+                        else if (_q.IsReady() && currentTarget.IsValidTarget(_q.Range))
                             nextSpell = _q;
                     }
                     else if (SpellName == "RivenFengShuiEngine")
@@ -740,17 +656,17 @@ namespace yol0Riven
 
                         ultiOn = true;
                         //Cast tiamat to cancel R animation if target is in range, otherwise Q or E
-                        if (_tiamat.IsReady() && Player.Distance(currentTarget.ServerPosition) < _tiamat.Range)
+                        if (_tiamat.IsReady() && currentTarget.IsValidTarget(_tiamat.Range))
                         {
                             nextSpell = null;
                             useTiamat = true;
                         }
-                        else if (_tiamat2.IsReady() && Player.Distance(currentTarget.ServerPosition) < _tiamat2.Range)
+                        else if (_tiamat2.IsReady() && currentTarget.IsValidTarget(_tiamat2.Range))
                         {
                             nextSpell = null;
                             useTiamat = true;
                         }
-                        else if (_q.IsReady() && Player.Distance(currentTarget.ServerPosition) + currentTarget.BoundingRadius <= _q.Range)
+                        else if (_q.IsReady() && currentTarget.IsValidTarget(_q.Range))
                         {
                             nextSpell = _q;
                         }
@@ -763,35 +679,6 @@ namespace yol0Riven
             }
         }
 
-        private static void CastW(Obj_AI_Base target)
-        {
-            if (_w.IsReady() && target.IsValidTarget(_w.Range))
-            {
-                _w.Cast();
-            }
-
-        }
-
-        private static void CastQ(Obj_AI_Base target, bool force = false)
-        {
-#if DEBUGGAPCLOSE
-            Console.WriteLine("CastQ()");
-#endif
-           if (_q.IsReady())
-           {
-               if (force)
-               {
-                   _q.Cast(target.ServerPosition);
-               }
-               else if (qCount < 1)
-               {
-                   var qRange = target.BoundingRadius + _q.Range;
-                   if (qRange > Player.Distance(target.ServerPosition))
-                       _q.Cast(target.ServerPosition);
-               }
-           }
-        }
-
         private static void GapClose(Obj_AI_Base target)
         {
             var useE = _e.IsReady();
@@ -801,7 +688,7 @@ namespace yol0Riven
                 
             lastGapClose = Environment.TickCount;
 
-            float aRange = Player.AttackRange + target.BoundingRadius;
+            float aRange = Player.AttackRange + Player.BoundingRadius + target.BoundingRadius;
             float eRange = aRange + _e.Range;
             float qRange = _q.Range + aRange;
             float eqRange = _q.Range + _e.Range;
@@ -809,6 +696,9 @@ namespace yol0Riven
             if (distance < aRange)
                 return;
 
+            nextSpell = null;
+            useTiamat = false;
+            UseAttack = true;
             if (_ghostblade.IsReady())
                 _ghostblade.Cast();
 
@@ -897,7 +787,6 @@ namespace yol0Riven
         }
         public static void PopulateList()
         {
-            //Console.WriteLine("PopulateList()");
             jumpPositions.Add(new WallHopPosition(new SharpDX.Vector3(6393.7299804688f, 8341.7451171875f, -63.87451171875f), new SharpDX.Vector3(6612.1625976563f, 8574.7412109375f, 56.018413543701f)));
             jumpPositions.Add(new WallHopPosition(new SharpDX.Vector3(7041.7885742188f, 8810.1787109375f, 0f), new SharpDX.Vector3(7296.0341796875f, 9056.4638671875f, 55.610824584961f)));
             jumpPositions.Add(new WallHopPosition(new SharpDX.Vector3(2805.4074707031f, 6140.130859375f, 55.182941436768f), new SharpDX.Vector3(2614.3215332031f, 5816.9438476563f, 60.193073272705f)));
