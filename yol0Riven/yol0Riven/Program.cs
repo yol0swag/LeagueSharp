@@ -56,7 +56,6 @@ namespace yol0Riven
         private static int lastGapClose = 0;
 
         public static int minRange = 100;
-        public static int displayRange = 1000;
         private static int rotateMultiplier = 15;
 
         public static List<WallHopPosition> jumpPositions = new List<WallHopPosition>();
