@@ -302,9 +302,9 @@ namespace yol0Riven
             }
             else
             {
-                if (qCount != 0 && lastQCast + (3675 - Game.Ping / 2) < Environment.TickCount && Config.SubMenu("Misc").Item("QKeepAlive").GetValue<bool>())
+                if (qCount != 0 && lastQCast + (3650 - Game.Ping / 2) < Environment.TickCount && Config.SubMenu("Misc").Item("QKeepAlive").GetValue<bool>())
                 {
-                    _q.Cast(Game.CursorPos);
+                    _q.Cast(Game.CursorPos, true);
                 }
             }
         }
@@ -489,7 +489,7 @@ namespace yol0Riven
                         }
                     }
                 }
-                else if (args.PacketData[0] == 0xFE) //attack started, auto use tiamat
+                /*else if (args.PacketData[0] == 0xFE) //attack started, auto use tiamat
                 {
                     if (orbwalker.ActiveMode.ToString() == "Combo")
                     {
@@ -498,20 +498,20 @@ namespace yol0Riven
                         var sourceId = packet.ReadInteger();
                         if (sourceId == Player.NetworkId)
                         {
-                            if (_tiamat.IsReady() && Player.Distance(currentTarget.Position) < _tiamat.Range)
+                            if (_tiamat.IsReady())
                             {
-                                Utility.DelayAction.Add(Game.Ping, delegate { _tiamat.Cast(); });
-                                Orbwalking.ResetAutoAttackTimer();
+                                //Utility.DelayAction.Add(Game.Ping, delegate { _tiamat.Cast(); });
+                                //Orbwalking.ResetAutoAttackTimer();
                             }
-                            if (_tiamat2.IsReady() && Player.Distance(currentTarget.Position) < _tiamat2.Range)
+                            if (_tiamat2.IsReady())
                             {
-                                Utility.DelayAction.Add(Game.Ping, delegate { _tiamat2.Cast(); });
-                                Orbwalking.ResetAutoAttackTimer();
+                                //Utility.DelayAction.Add(Game.Ping, delegate { _tiamat2.Cast(); });
+                                //Orbwalking.ResetAutoAttackTimer();
                             }
 
                         }
                     }
-                }
+                }*/
             }
             catch (Exception ex)
             {
@@ -550,9 +550,9 @@ namespace yol0Riven
                 Console.WriteLine("movePos Z = " + movePos.Z);
 #endif
             }
-            Packet.C2S.Move.Encoded(new Packet.C2S.Move.Struct(movePos.X, movePos.Y)).Send();
+            //Packet.C2S.Move.Encoded(new Packet.C2S.Move.Struct(movePos.X, movePos.Y)).Send();
             //Orbwalking.ResetAutoAttackTimer();
-            //Player.IssueOrder(GameObjectOrder.MoveTo, movePos);
+            Player.IssueOrder(GameObjectOrder.MoveTo, movePos);
 
         }
         private static double GetRDamage(Obj_AI_Base target) // DamageLib doesn't do this correctly yet
@@ -589,27 +589,27 @@ namespace yol0Riven
         private static double GetUltiQDamage(Obj_AI_Base target) // account for bonus ulti AD
         {
             var dmg = 10 + ((_q.Level - 1) * 20) + 0.6 * (1.2 * (Player.BaseAttackDamage + Player.FlatPhysicalDamageMod));
-            return DamageLib.CalcPhysicalDmg(dmg, target);
+            return DamageLib.CalcPhysicalDmg(dmg - 10, target);
         }
 
         private static double GetUltiWDamage(Obj_AI_Base target) // account for bonus ulti AD
         {
             var totalAD = Player.FlatPhysicalDamageMod + Player.BaseAttackDamage;
             var dmg = 50 + ((_w.Level - 1) * 30) + (0.2 * totalAD + Player.FlatPhysicalDamageMod);
-            return DamageLib.CalcPhysicalDmg(dmg, target);
+            return DamageLib.CalcPhysicalDmg(dmg - 10, target);
         }
 
         private static double GetQDamage(Obj_AI_Base target)
         {
             var totalAD = Player.FlatPhysicalDamageMod + Player.BaseAttackDamage;
             var dmg = 10 + ((_q.Level - 1) * 20) + (0.35 + (Player.Level * 0.05)) * totalAD;
-            return DamageLib.CalcPhysicalDmg(dmg, target);
+            return DamageLib.CalcPhysicalDmg(dmg - 10, target);
         }
 
         private static double GetWDamage(Obj_AI_Base target)
         {
             var dmg = 50 + (_w.Level * 30) + Player.FlatPhysicalDamageMod;
-            return DamageLib.CalcPhysicalDmg(dmg, target);
+            return DamageLib.CalcPhysicalDmg(dmg - 10, target);
         }
 
         private static double DamageCalcNoR(Obj_AI_Base target)
@@ -801,7 +801,7 @@ namespace yol0Riven
                 
             lastGapClose = Environment.TickCount;
 
-            float aRange = Player.AttackRange + Player.BoundingRadius + target.BoundingRadius - 50;
+            float aRange = Player.AttackRange + target.BoundingRadius;
             float eRange = aRange + _e.Range;
             float qRange = _q.Range + aRange;
             float eqRange = _q.Range + _e.Range;
@@ -821,7 +821,7 @@ namespace yol0Riven
                 }
                 _q.Cast(target.ServerPosition, true);
             }
-            else if (_e.IsReady() && eRange + aRange > distance)
+            else if (_e.IsReady() && eRange > distance + aRange)
             {
                 var pred = Prediction.GetPrediction(target, 0, 0, 1450);
                 _e.Cast(pred.CastPosition);
@@ -858,7 +858,7 @@ namespace yol0Riven
                             _tiamat.Cast();
                         if (_tiamat2.IsReady())
                             _tiamat2.Cast();
-                    } else if (!ultiReady && !ultiOn && Config.SubMenu("KS").Item("KillStealR").GetValue<bool>() && Config.SubMenu("KS").Item("KillStealRActivate").GetValue<bool>() && hero.IsValidTarget(_r.Range - 30) && GetRDamage(hero) - 20 >= hero.Health)
+                    } else if (!ultiReady && !ultiOn && Config.SubMenu("KS").Item("KillStealR").GetValue<bool>() && Config.SubMenu("KS").Item("KillStealRActivate").GetValue<bool>() && hero.IsValidTarget(_r.Range - 30) && GetRDamage(hero) - 20 >= hero.Health && orbwalker.ActiveMode.ToString() != "Combo")
                     {
                         IsKSing = true;
                         _r.Cast();
