@@ -440,7 +440,6 @@ namespace yol0Riven
                     {
                         if (ProcessPackets)
                         {
-                            args.Process = false;
                             CancelAnimation(); // wait until recv packet 0x61
                             Orbwalking.ResetAutoAttackTimer();
                         }
