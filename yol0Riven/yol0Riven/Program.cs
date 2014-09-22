@@ -641,6 +641,11 @@ namespace yol0Riven
                         // Cancel W animation with Q
                         if (_q.IsReady() && currentTarget.IsValidTarget(_q.Range))
                             nextSpell = _q;
+                        else
+                        {
+                            nextSpell = null;
+                            UseAttack = true;
+                        }
                     }
                     else if (SpellName == "ItemTiamatCleave")
                     {
