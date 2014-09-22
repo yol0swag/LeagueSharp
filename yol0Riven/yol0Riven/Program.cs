@@ -54,6 +54,7 @@ namespace yol0Riven
         private static bool IsKSing = false;
         private static Obj_AI_Base currentTarget = null;
         private static int lastGapClose = 0;
+        private static bool IsRecalling = false;
 
         public static int minRange = 100;
         private static int rotateMultiplier = 15;
@@ -126,7 +127,7 @@ namespace yol0Riven
             Game.OnGameProcessPacket += OnGameProcessPacket;
             Drawing.OnDraw += OnDraw;
             AntiGapcloser.OnEnemyGapcloser += OnEnemyGapCloser;
-            Interrupter.OnPosibleToInterrupt += OnPossibleToInterrupt;
+            Interrupter.OnPossibleToInterrupt += OnPossibleToInterrupt;
 
             if (IsSR)
                 Game.OnGameUpdate += Wallhopper_OnGameUpdate;
@@ -288,7 +289,7 @@ namespace yol0Riven
             else
             {
                 orbwalker.SetMovement(true);
-                if (qCount != 0 && lastQCast + (3650 - Game.Ping / 2) < Environment.TickCount && Config.SubMenu("Misc").Item("QKeepAlive").GetValue<bool>())
+                if (!IsRecalling && qCount != 0 && lastQCast + (3650 - Game.Ping / 2) < Environment.TickCount && Config.SubMenu("Misc").Item("QKeepAlive").GetValue<bool>())
                 {
                     _q.Cast(Game.CursorPos, true);
                 }
@@ -442,6 +443,21 @@ namespace yol0Riven
                         {
                             CancelAnimation(); // wait until recv packet 0x61
                             Orbwalking.ResetAutoAttackTimer();
+                        }
+                    }
+                }
+                else if (args.PacketData[0] == 0xD8)
+                {
+                    Packet.S2C.Recall.Struct packet = Packet.S2C.Recall.Decoded(args.PacketData);
+                    if (packet.UnitNetworkId == Player.NetworkId)
+                    {
+                        if (packet.Status == Packet.S2C.Recall.RecallStatus.RecallStarted)
+                        {
+                            IsRecalling = true;
+                        }
+                        else if (packet.Status == Packet.S2C.Recall.RecallStatus.RecallAborted || packet.Status == Packet.S2C.Recall.RecallStatus.RecallFinished)
+                        {
+                            IsRecalling = false;
                         }
                     }
                 }
