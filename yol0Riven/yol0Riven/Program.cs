@@ -79,7 +79,7 @@ namespace yol0Riven
             if (Player.ChampionName != "Riven")
                 return;
 
-            if (Utility.Map.GetMap() == Utility.Map.MapType.SummonersRift)
+            if (Utility.Map.GetMap()._MapType == Utility.Map.MapType.SummonersRift)
                 IsSR = true;
             Config = new Menu("yol0 Riven", "Riven", true);
             Config.AddSubMenu(new Menu("Orbwalker", "Orbwalker"));
@@ -511,8 +511,8 @@ namespace yol0Riven
             {
                 dmg = minDmg + minDmg * (0.0267 * targetPercentHealthMissing);
             }
-            
-            var realDmg = DamageLib.CalcPhysicalDmg(dmg - 20, target);
+
+            var realDmg = Damage.CalcDamage(Player, target, Damage.DamageType.Physical, dmg - 20);
             return realDmg;
             
         }
@@ -520,27 +520,27 @@ namespace yol0Riven
         private static double GetUltiQDamage(Obj_AI_Base target) // account for bonus ulti AD
         {
             var dmg = 10 + ((_q.Level - 1) * 20) + 0.6 * (1.2 * (Player.BaseAttackDamage + Player.FlatPhysicalDamageMod));
-            return DamageLib.CalcPhysicalDmg(dmg - 10, target);
+            return Damage.CalcDamage(Player, target, Damage.DamageType.Physical, dmg - 10);
         }
 
         private static double GetUltiWDamage(Obj_AI_Base target) // account for bonus ulti AD
         {
             var totalAD = Player.FlatPhysicalDamageMod + Player.BaseAttackDamage;
             var dmg = 50 + ((_w.Level - 1) * 30) + (0.2 * totalAD + Player.FlatPhysicalDamageMod);
-            return DamageLib.CalcPhysicalDmg(dmg - 10, target);
+            return Damage.CalcDamage(Player, target, Damage.DamageType.Physical, dmg - 10);
         }
 
         private static double GetQDamage(Obj_AI_Base target)
         {
             var totalAD = Player.FlatPhysicalDamageMod + Player.BaseAttackDamage;
             var dmg = 10 + ((_q.Level - 1) * 20) + (0.35 + (Player.Level * 0.05)) * totalAD;
-            return DamageLib.CalcPhysicalDmg(dmg - 10, target);
+            return Damage.CalcDamage(Player, target, Damage.DamageType.Physical, dmg - 10);
         }
 
         private static double GetWDamage(Obj_AI_Base target)
         {
             var dmg = 50 + (_w.Level * 30) + Player.FlatPhysicalDamageMod;
-            return DamageLib.CalcPhysicalDmg(dmg - 10, target);
+            return Damage.CalcDamage(Player, target, Damage.DamageType.Physical, dmg - 10);
         }
 
         private static double DamageCalcNoR(Obj_AI_Base target)
@@ -550,14 +550,15 @@ namespace yol0Riven
             var qDamage = GetQDamage(target);
             var wDamage = GetWDamage(target);
             var tDamage = 0.0;
-            var aDamage = DamageLib.getDmg(target, DamageLib.SpellType.AD);
+            var aDamage = Damage.GetAutoAttackDamage(Player, target);
             var pDmgMultiplier = 0.2 + (0.05 * Math.Floor(Player.Level / 3.0));
             var totalAD = Player.BaseAttackDamage + Player.FlatPhysicalDamageMod;
-            var pDamage = DamageLib.CalcPhysicalDmg(pDmgMultiplier * totalAD, target);
+            var pDamage = Damage.CalcDamage(Player, target, Damage.DamageType.Physical, pDmgMultiplier * totalAD);
 
             if (_tiamat.IsReady() || _tiamat2.IsReady())
                 tDamage = DamageLib.getDmg(target, DamageLib.SpellType.TIAMAT);
-
+            //GetItemDamage not implemented yet
+            //tDamage = Damage.GetItemDamage(Player, target, Damage.DamageItems.Tiamat);
             if (!_q.IsReady() && qCount == 0)
                 qDamage = 0.0;
 
@@ -577,13 +578,13 @@ namespace yol0Riven
             var totalAD = Player.FlatPhysicalDamageMod + Player.BaseAttackDamage;
 
 
-            var aDamage = DamageLib.CalcPhysicalDmg(0.2 * totalAD + totalAD, target);
-            
+            var aDamage = Damage.CalcDamage(Player, target, Damage.DamageType.Physical, 0.2 * totalAD + totalAD);
             var pDmgMultiplier = 0.2 + (0.05 * Math.Floor(Player.Level / 3.0));
-            var pDamage = DamageLib.CalcPhysicalDmg(pDmgMultiplier * (0.2 * totalAD + totalAD), target);
+            var pDamage = Damage.CalcDamage(Player, target, Damage.DamageType.Physical, pDmgMultiplier * (0.2 * totalAD + totalAD));
             if (_tiamat.IsReady() || _tiamat2.IsReady())
                 tDamage = DamageLib.getDmg(target, DamageLib.SpellType.TIAMAT);
-
+            //GetItemDamage not implemented yet
+            //tDamage = Damage.GetItemDamage(Player, target, Damage.DamageItems.Tiamat);
             if (!_q.IsReady() && qCount == 0)
                 qDamage = 0.0;
 
@@ -764,6 +765,7 @@ namespace yol0Riven
                     }
                     else if (Config.SubMenu("KS").Item("KillStealT").GetValue<bool>() && (_tiamat.IsReady() || _tiamat2.IsReady()) && hero.IsValidTarget(_tiamat.Range) && DamageLib.getDmg(hero, DamageLib.SpellType.TIAMAT) >= hero.Health)
                     {
+                        //Damage.GetItemDamage(Player, hero, Damage.DamageItems.Tiamat);
                         if (_tiamat.IsReady())
                             _tiamat.Cast();
                         if (_tiamat2.IsReady())
