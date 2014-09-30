@@ -556,9 +556,8 @@ namespace yol0Riven
             var pDamage = Damage.CalcDamage(Player, target, Damage.DamageType.Physical, pDmgMultiplier * totalAD);
 
             if (_tiamat.IsReady() || _tiamat2.IsReady())
-                tDamage = DamageLib.getDmg(target, DamageLib.SpellType.TIAMAT);
-            //GetItemDamage not implemented yet
-            //tDamage = Damage.GetItemDamage(Player, target, Damage.DamageItems.Tiamat);
+                tDamage = Damage.GetItemDamage(Player, target, Damage.DamageItems.Tiamat);
+
             if (!_q.IsReady() && qCount == 0)
                 qDamage = 0.0;
 
@@ -582,9 +581,8 @@ namespace yol0Riven
             var pDmgMultiplier = 0.2 + (0.05 * Math.Floor(Player.Level / 3.0));
             var pDamage = Damage.CalcDamage(Player, target, Damage.DamageType.Physical, pDmgMultiplier * (0.2 * totalAD + totalAD));
             if (_tiamat.IsReady() || _tiamat2.IsReady())
-                tDamage = DamageLib.getDmg(target, DamageLib.SpellType.TIAMAT);
-            //GetItemDamage not implemented yet
-            //tDamage = Damage.GetItemDamage(Player, target, Damage.DamageItems.Tiamat);
+                tDamage = Damage.GetItemDamage(Player, target, Damage.DamageItems.Tiamat);
+
             if (!_q.IsReady() && qCount == 0)
                 qDamage = 0.0;
 
@@ -763,9 +761,8 @@ namespace yol0Riven
                     {
                         _w.Cast();
                     }
-                    else if (Config.SubMenu("KS").Item("KillStealT").GetValue<bool>() && (_tiamat.IsReady() || _tiamat2.IsReady()) && hero.IsValidTarget(_tiamat.Range) && DamageLib.getDmg(hero, DamageLib.SpellType.TIAMAT) >= hero.Health)
+                    else if (Config.SubMenu("KS").Item("KillStealT").GetValue<bool>() && (_tiamat.IsReady() || _tiamat2.IsReady()) && hero.IsValidTarget(_tiamat.Range) && Damage.GetItemDamage(Player, hero, Damage.DamageItems.Tiamat) >= hero.Health)
                     {
-                        //Damage.GetItemDamage(Player, hero, Damage.DamageItems.Tiamat);
                         if (_tiamat.IsReady())
                             _tiamat.Cast();
                         if (_tiamat2.IsReady())
