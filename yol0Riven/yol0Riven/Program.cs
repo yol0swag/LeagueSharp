@@ -101,11 +101,13 @@ namespace yol0Riven
             Config.SubMenu("KS").AddItem(new MenuItem("KillStealQ", "KS with Q").SetValue(true));
             Config.SubMenu("KS").AddItem(new MenuItem("KillStealW", "KS with W").SetValue(true));
             Config.SubMenu("KS").AddItem(new MenuItem("KillStealT", "KS with Tiamat").SetValue(true));
+            Config.SubMenu("Misc").AddItem(new MenuItem("AutoW", "Auto W Enemies in Range").SetValue(false));
             Config.SubMenu("Misc").AddItem(new MenuItem("AntiGapcloser", "Auto W Gapclosers").SetValue(true));
             Config.SubMenu("Misc").AddItem(new MenuItem("Interrupt", "Auto W Interruptible Spells").SetValue(true));
             Config.SubMenu("Misc").AddItem(new MenuItem("QKeepAlive", "Keep Q Alive").SetValue(true));
             Config.SubMenu("Draw").AddItem(new MenuItem("DrawRanges", "Draw engage range").SetValue(new Circle(true, Color.FromKnownColor(System.Drawing.KnownColor.Green))));
             Config.SubMenu("Draw").AddItem(new MenuItem("DrawTarget", "Draw current target").SetValue(new Circle(true, Color.FromKnownColor(System.Drawing.KnownColor.Red))));
+
             if (IsSR)
             {
                 Config.SubMenu("Draw").AddItem(new MenuItem("DrawJumps", "Draw Jump spots (always)").SetValue(false));
@@ -115,7 +117,7 @@ namespace yol0Riven
 
                 PopulateList();
             }
-
+            
             _r.SetSkillshot(0.25f, 60f, 2200, false, SkillshotType.SkillshotCone);
             _e.SetSkillshot(0, 0, 1450, false, SkillshotType.SkillshotLine);
 
@@ -257,6 +259,7 @@ namespace yol0Riven
         private static void OnGameUpdate(EventArgs args)
         {
             KillSecure();
+            AutoStun();
             if (orbwalker.ActiveMode.ToString() == "Combo")
             {
                 // try not to switch targets unless needed
@@ -279,6 +282,8 @@ namespace yol0Riven
                 if (!currentTarget.IsValidTarget(_e.Range + _q.Range + Player.AttackRange))
                     AcquireTarget();
 
+
+
                 if (!currentTarget.IsDead && currentTarget.IsVisible)
                 {
                     GapClose(currentTarget);
@@ -292,6 +297,20 @@ namespace yol0Riven
                 if (!IsRecalling && qCount != 0 && lastQCast + (3650 - Game.Ping / 2) < Environment.TickCount && Config.SubMenu("Misc").Item("QKeepAlive").GetValue<bool>())
                 {
                     _q.Cast(Game.CursorPos, true);
+                }
+            }
+        }
+
+        private static void AutoStun()
+        {
+            if (Config.SubMenu("Misc").Item("AutoW").GetValue<bool>())
+            {
+                foreach (var enemy in ObjectManager.Get<Obj_AI_Hero>().Where(hero => hero.Team != Player.Team))
+                {
+                    if (_w.IsReady() && enemy.IsValidTarget(_w.Range))
+                    {
+                            _w.Cast();
+                    }
                 }
             }
         }
