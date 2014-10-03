@@ -101,6 +101,12 @@ namespace yol0Riven
             Config.SubMenu("KS").AddItem(new MenuItem("KillStealQ", "KS with Q").SetValue(true));
             Config.SubMenu("KS").AddItem(new MenuItem("KillStealW", "KS with W").SetValue(true));
             Config.SubMenu("KS").AddItem(new MenuItem("KillStealT", "KS with Tiamat").SetValue(true));
+            Config.SubMenu("Misc").AddSubMenu(new Menu("Auto Stun", "AutoStun"));
+            foreach (var enemy in ObjectManager.Get<Obj_AI_Hero>().Where(hero => hero.Team != Player.Team))
+            {
+                Config.SubMenu("Misc").SubMenu("AutoStun").AddItem(new MenuItem("Stun" + enemy.ChampionName, "Stun " + enemy.ChampionName).SetValue(false));
+            }
+            
             Config.SubMenu("Misc").AddItem(new MenuItem("AutoW", "Auto W Enemies in Range").SetValue(false));
             Config.SubMenu("Misc").AddItem(new MenuItem("AntiGapcloser", "Auto W Gapclosers").SetValue(true));
             Config.SubMenu("Misc").AddItem(new MenuItem("Interrupt", "Auto W Interruptible Spells").SetValue(true));
@@ -303,14 +309,11 @@ namespace yol0Riven
 
         private static void AutoStun()
         {
-            if (Config.SubMenu("Misc").Item("AutoW").GetValue<bool>())
+            foreach (var enemy in ObjectManager.Get<Obj_AI_Hero>().Where(hero => hero.Team != Player.Team))
             {
-                foreach (var enemy in ObjectManager.Get<Obj_AI_Hero>().Where(hero => hero.Team != Player.Team))
+                if (_w.IsReady() && enemy.IsValidTarget(_w.Range) && Config.SubMenu("Misc").SubMenu("AutoStun").Item("Stun"+enemy.ChampionName).GetValue<bool>())
                 {
-                    if (_w.IsReady() && enemy.IsValidTarget(_w.Range))
-                    {
-                            _w.Cast();
-                    }
+                    _w.Cast();
                 }
             }
         }
