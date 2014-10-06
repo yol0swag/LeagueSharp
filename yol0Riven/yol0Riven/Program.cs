@@ -1,4 +1,5 @@
-﻿using System;
+﻿
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -26,8 +27,8 @@ namespace yol0Riven
 
     internal class Program
     {
+        public const string Revision = "1.0.0.6";
         public static Obj_AI_Hero Player = ObjectManager.Player;
-        public static Spellbook sBook = Player.Spellbook;
         public static Orbwalking.Orbwalker orbwalker;
 
         public static Spell _q = new Spell(SpellSlot.Q, 260);
@@ -98,9 +99,15 @@ namespace yol0Riven
             Config.SubMenu("Combo").AddItem(new MenuItem("UseQGapClose", "Use Q to gapclose").SetValue(true));
             Config.SubMenu("KS").AddItem(new MenuItem("KillStealRActivate", "Activate ulti for KS").SetValue(false));
             Config.SubMenu("KS").AddItem(new MenuItem("KillStealR", "KS with R2").SetValue(true));
+            Config.SubMenu("KS").AddSubMenu(new Menu("Don't Use R For KS", "NoRKS"));
+            foreach (var enemy in ObjectManager.Get<Obj_AI_Hero>().Where(hero => hero.Team != Player.Team))
+            {
+                Config.SubMenu("KS").SubMenu("NoRKS").AddItem(new MenuItem(enemy.ChampionName, enemy.ChampionName).SetValue(false));
+            }
             Config.SubMenu("KS").AddItem(new MenuItem("KillStealQ", "KS with Q").SetValue(true));
             Config.SubMenu("KS").AddItem(new MenuItem("KillStealW", "KS with W").SetValue(true));
             Config.SubMenu("KS").AddItem(new MenuItem("KillStealT", "KS with Tiamat").SetValue(true));
+            Config.SubMenu("Misc").AddItem(new MenuItem("Flee", "Flee Mode").SetValue(new KeyBind(72, KeyBindType.Press)));
             Config.SubMenu("Misc").AddSubMenu(new Menu("Auto Stun", "AutoStun"));
             foreach (var enemy in ObjectManager.Get<Obj_AI_Hero>().Where(hero => hero.Team != Player.Team))
             {
@@ -133,12 +140,15 @@ namespace yol0Riven
             Game.OnGameUpdate += OnGameUpdate;
             Game.OnGameUpdate += Buffs_GameUpdate;
             Game.OnGameProcessPacket += OnGameProcessPacket;
+            Game.OnWndProc += OnWndProc;
             Drawing.OnDraw += OnDraw;
             AntiGapcloser.OnEnemyGapcloser += OnEnemyGapCloser;
             Interrupter.OnPossibleToInterrupt += OnPossibleToInterrupt;
 
             if (IsSR)
                 Game.OnGameUpdate += Wallhopper_OnGameUpdate;
+            
+            Game.PrintChat("<font color=\"#FF0000\">yol0 Riven v"+Revision+" loaded!</font>");
         }
 
         private static void Buffs_GameUpdate(EventArgs args)
@@ -266,6 +276,9 @@ namespace yol0Riven
         {
             KillSecure();
             AutoStun();
+            if (Config.SubMenu("Misc").Item("Flee").GetValue<KeyBind>().Active)
+                Flee();
+
             if (orbwalker.ActiveMode.ToString() == "Combo")
             {
                 // try not to switch targets unless needed
@@ -288,8 +301,6 @@ namespace yol0Riven
                 if (!currentTarget.IsValidTarget(_e.Range + _q.Range + Player.AttackRange))
                     AcquireTarget();
 
-
-
                 if (!currentTarget.IsDead && currentTarget.IsVisible)
                 {
                     GapClose(currentTarget);
@@ -305,6 +316,16 @@ namespace yol0Riven
                     _q.Cast(Game.CursorPos, true);
                 }
             }
+        }
+
+        private static void Flee()
+        {
+            orbwalker.SetMovement(true);
+            if (_q.IsReady())
+                _q.Cast(Game.CursorPos);
+            if (_e.IsReady())
+                _e.Cast(Game.CursorPos);
+            Player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
         }
 
         private static void AutoStun()
@@ -333,7 +354,7 @@ namespace yol0Riven
         public static void Combo(Obj_AI_Base target)
         {
             var noRComboDmg = DamageCalcNoR(target);
-            if (_r.IsReady() && !ultiReady && noRComboDmg < target.Health && Config.SubMenu("Combo").Item("UseUlti").GetValue<bool>())
+            if (_r.IsReady() && !ultiReady && noRComboDmg < target.Health && Config.SubMenu("Combo").Item("UseUlti").GetValue<bool>() && currentTarget is Obj_AI_Hero)
             {
                 _r.Cast();
             }
@@ -371,6 +392,17 @@ namespace yol0Riven
             if (nextSpell == _e)
             {
                 _e.Cast(currentTarget.ServerPosition);
+            }
+        }
+
+        private static void OnWndProc(WndEventArgs args)
+        {
+            if (MenuGUI.IsChatOpen || Player.Spellbook.SelectedSpellSlot != SpellSlot.Unknown)
+                return;
+
+            if (args.WParam == 1 && args.Msg == 257)
+            {
+                Utility.DelayAction.Add(100, delegate { AcquireTarget(); });
             }
         }
 
@@ -426,7 +458,7 @@ namespace yol0Riven
                     {
                         if (ProcessPackets)
                         {
-                            CancelAnimation();
+                            //CancelAnimation();
                             Orbwalking.ResetAutoAttackTimer();
                         }
                     }
@@ -442,7 +474,7 @@ namespace yol0Riven
                     {
                         if (currentTarget != null && ProcessPackets && orbwalker.ActiveMode.ToString() == "Combo")
                         {
-                            Packet.C2S.Move.Encoded(new Packet.C2S.Move.Struct(0, 0, 3, currentTarget.NetworkId)).Send();
+                            Packet.C2S.Move.Encoded(new Packet.C2S.Move.Struct(currentTarget.ServerPosition.To2D().X, currentTarget.ServerPosition.To2D().Y, 3, currentTarget.NetworkId)).Send();
                             Orbwalking.ResetAutoAttackTimer();
                             ProcessPackets = false;
                         }
@@ -770,7 +802,7 @@ namespace yol0Riven
             {
                 if (hero.Team != Player.Team && !hero.IsDead && hero.IsVisible)
                 {
-                    if (ultiReady && Config.SubMenu("KS").Item("KillStealR").GetValue<bool>() && hero.IsValidTarget(_r.Range - 30) && GetRDamage(hero) - 20 >= hero.Health)
+                    if (ultiReady && Config.SubMenu("KS").Item("KillStealR").GetValue<bool>() && hero.IsValidTarget(_r.Range - 30) && GetRDamage(hero) - 20 >= hero.Health && !Config.SubMenu("KS").SubMenu("NoRKS").Item(hero.ChampionName).GetValue<bool>())
                     {
                         _r.Cast(hero, true, true);
                         IsKSing = false;
