@@ -118,6 +118,7 @@ namespace yol0Riven
             Config.SubMenu("Misc").AddItem(new MenuItem("AntiGapcloser", "Auto W Gapclosers").SetValue(true));
             Config.SubMenu("Misc").AddItem(new MenuItem("Interrupt", "Auto W Interruptible Spells").SetValue(true));
             Config.SubMenu("Misc").AddItem(new MenuItem("QKeepAlive", "Keep Q Alive").SetValue(true));
+            Config.SubMenu("Misc").AddItem(new MenuItem("DCFix", "Try Disconnect Fix").SetValue(false));
             Config.SubMenu("Draw").AddItem(new MenuItem("DrawRanges", "Draw engage range").SetValue(new Circle(true, Color.FromKnownColor(System.Drawing.KnownColor.Green))));
             Config.SubMenu("Draw").AddItem(new MenuItem("DrawTarget", "Draw current target").SetValue(new Circle(true, Color.FromKnownColor(System.Drawing.KnownColor.Red))));
 
@@ -458,7 +459,8 @@ namespace yol0Riven
                     {
                         if (ProcessPackets)
                         {
-                            //CancelAnimation();
+                            if (!Config.SubMenu("Misc").Item("DCFix").GetValue<bool>())
+                                CancelAnimation();
                             Orbwalking.ResetAutoAttackTimer();
                         }
                     }
@@ -529,7 +531,8 @@ namespace yol0Riven
                 if (args.Animation.Contains("Spell1"))
                 {
                     ProcessPackets = true;
-                    CancelAnimation();
+                    if (!Config.SubMenu("Misc").Item("DCFix").GetValue<bool>())
+                        CancelAnimation();
                 }
             }
         }
@@ -689,7 +692,8 @@ namespace yol0Riven
                     {
                         nextSpell = null;
                         lastSpell = _q;
-                        CancelAnimation();
+                        if (!Config.SubMenu("Misc").Item("DCFix").GetValue<bool>())
+                            CancelAnimation();
                         if (Player.Distance(currentTarget.ServerPosition) + currentTarget.BoundingRadius < Player.AttackRange + Player.BoundingRadius)
                         {
                             nextSpell = null;
