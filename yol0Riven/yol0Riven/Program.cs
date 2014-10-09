@@ -337,7 +337,7 @@ namespace yol0Riven
                 if (!IsRecalling && qCount != 0 && lastQCast + (3650 - Game.Ping/2) < Environment.TickCount &&
                     Config.SubMenu("Misc").Item("QKeepAlive").GetValue<bool>())
                 {
-                    _q.Cast(Game.CursorPos, true);
+                    _q.Cast(Game.CursorPos);
                 }
             }
         }
@@ -407,7 +407,7 @@ namespace yol0Riven
 
             if (nextSpell == _q)
             {
-                _q.Cast(target.Position, true);
+                _q.Cast(target.Position);
                 nextSpell = null;
             }
 
@@ -818,7 +818,7 @@ namespace yol0Riven
                 {
                     _r.Cast();
                 }
-                _q.Cast(target.ServerPosition, true);
+                _q.Cast(target.ServerPosition);
             }
             else if (_e.IsReady() && eRange > distance + aRange)
             {
@@ -898,7 +898,7 @@ namespace yol0Riven
 
         public static void CastJump()
         {
-            _q.Cast(endPoint, true);
+            _q.Cast(endPoint);
             Player.IssueOrder(GameObjectOrder.HoldPosition, Player.ServerPosition);
             Utility.DelayAction.Add(1000, delegate { freeFunction(); });
         }
