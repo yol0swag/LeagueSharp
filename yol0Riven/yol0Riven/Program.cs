@@ -26,7 +26,7 @@ namespace yol0Riven
 
     internal class Program
     {
-        public const string Revision = "1.0.0.6";
+        public const string Revision = "1.0.0.7";
         public static Obj_AI_Hero Player = ObjectManager.Player;
         public static Orbwalking.Orbwalker orbwalker;
 
@@ -49,6 +49,7 @@ namespace yol0Riven
         private static bool ProcessPackets;
         private static Spell nextSpell;
         private static Spell lastSpell;
+        private static string lastSpellName;
         private static bool UseAttack;
         private static bool useTiamat;
         private static bool IsKSing;
@@ -346,7 +347,7 @@ namespace yol0Riven
         {
             orbwalker.SetMovement(true);
             if (_q.IsReady())
-                _q.Cast(Game.CursorPos);
+                _q.Cast(Game.CursorPos, true);
             if (_e.IsReady())
                 _e.Cast(Game.CursorPos);
             Player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
@@ -407,7 +408,7 @@ namespace yol0Riven
 
             if (nextSpell == _q)
             {
-                _q.Cast(target.Position);
+                _q.Cast(target.Position, true);
                 nextSpell = null;
             }
 
@@ -432,7 +433,6 @@ namespace yol0Riven
                 Utility.DelayAction.Add(100, delegate { AcquireTarget(); });
             }
         }
-
         public static void OnGameProcessPacket(GamePacketEventArgs args)
         {
             try
@@ -440,20 +440,21 @@ namespace yol0Riven
                 if (args.PacketData[0] == 0x65) // damage dealt
                 {
                     var packet = new GamePacket(args.PacketData);
-                    packet.Position = 5;
-                    int damageType = packet.ReadByte();
+                    packet.Position = 1;
                     int targetId = packet.ReadInteger();
+                    int damageType = packet.ReadByte();
+                    packet.Position = 16;
                     int sourceId = packet.ReadInteger();
 
                     if (Player.NetworkId != sourceId)
                         return;
 
                     var target = ObjectManager.GetUnitByNetworkId<Obj_AI_Base>(targetId);
+
                     if (orbwalker.ActiveMode.ToString() == "Combo")
                     {
-                        //Console.WriteLine("Damage Dealt!");
-                        //12 = basic attack, 3 = ?, 11 = crit attack, 4 = spell
-                        if (damageType == 12 || damageType == 3 || damageType == 11)
+                        //4.18 - 4 = basic attack/all spells, 3 = crit attack
+                        if ((damageType == 3 || damageType == 4) && lastSpellName.Contains("Attack"))
                         {
                             if (_tiamat.IsReady() && currentTarget.IsValidTarget(_tiamat.Range))
                             {
@@ -487,7 +488,7 @@ namespace yol0Riven
                     {
                         if (ProcessPackets)
                         {
-                            //Console.WriteLine("Attack!");
+                            
                             if (!Config.SubMenu("Misc").Item("DCFix").GetValue<bool>())
                                 CancelAnimation();
                             Orbwalking.ResetAutoAttackTimer();
@@ -503,7 +504,7 @@ namespace yol0Riven
                     {
                         if (currentTarget != null && ProcessPackets && orbwalker.ActiveMode.ToString() == "Combo")
                         {
-                            //Console.WriteLine("Move!");
+                            Console.WriteLine("Move!");
                             Packet.C2S.Move.Encoded(new Packet.C2S.Move.Struct(currentTarget.ServerPosition.To2D().X,
                                 currentTarget.ServerPosition.To2D().Y, 3, currentTarget.NetworkId)).Send();
                             Orbwalking.ResetAutoAttackTimer();
@@ -525,7 +526,6 @@ namespace yol0Riven
                     {
                         if (ProcessPackets)
                         {
-                            //Console.WriteLine("Animation2!");
                             CancelAnimation(); // wait until recv packet 0x61
                             Orbwalking.ResetAutoAttackTimer();
                         }
@@ -689,6 +689,7 @@ namespace yol0Riven
             if (sender.IsMe)
             {
                 string SpellName = args.SData.Name;
+                lastSpellName = SpellName;
                 if (IsKSing && SpellName == "RivenFengShuiEngine") // cancel r animation to fire quickly
                 {
                     if (_tiamat.IsReady())
@@ -818,7 +819,7 @@ namespace yol0Riven
                 {
                     _r.Cast();
                 }
-                _q.Cast(target.ServerPosition);
+                _q.Cast(target.ServerPosition, true);
             }
             else if (_e.IsReady() && eRange > distance + aRange)
             {
@@ -842,13 +843,13 @@ namespace yol0Riven
                         hero.IsValidTarget(_r.Range - 30) && GetRDamage(hero) - 20 >= hero.Health &&
                         !Config.SubMenu("KS").SubMenu("NoRKS").Item(hero.ChampionName).GetValue<bool>())
                     {
-                        _r.Cast(hero, true, true);
+                        _r.Cast(hero, aoe: true);
                         IsKSing = false;
                     }
                     else if (Config.SubMenu("KS").Item("KillStealQ").GetValue<bool>() && _q.IsReady() &&
                              hero.IsValidTarget(_q.Range) && GetQDamage(hero) - 10 >= hero.Health)
                     {
-                        _q.Cast(hero.ServerPosition);
+                        _q.Cast(hero.ServerPosition, true);
                     }
                     else if (Config.SubMenu("KS").Item("KillStealW").GetValue<bool>() && _w.IsReady() &&
                              hero.IsValidTarget(_w.Range) && GetWDamage(hero) - 10 >= hero.Health)
@@ -898,7 +899,7 @@ namespace yol0Riven
 
         public static void CastJump()
         {
-            _q.Cast(endPoint);
+            _q.Cast(endPoint, true);
             Player.IssueOrder(GameObjectOrder.HoldPosition, Player.ServerPosition);
             Utility.DelayAction.Add(1000, delegate { freeFunction(); });
         }
