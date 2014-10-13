@@ -26,7 +26,7 @@ namespace yol0Riven
 
     internal class Program
     {
-        public const string Revision = "1.0.0.7";
+        public const string Revision = "1.0.0.8";
         public static Obj_AI_Hero Player = ObjectManager.Player;
         public static Orbwalking.Orbwalker orbwalker;
 
@@ -158,7 +158,6 @@ namespace yol0Riven
             Drawing.OnDraw += OnDraw;
             AntiGapcloser.OnEnemyGapcloser += OnEnemyGapCloser;
             Interrupter.OnPossibleToInterrupt += OnPossibleToInterrupt;
-
             if (IsSR)
                 Game.OnGameUpdate += Wallhopper_OnGameUpdate;
 
@@ -415,11 +414,13 @@ namespace yol0Riven
             if (nextSpell == _w)
             {
                 _w.Cast();
+                nextSpell = null;
             }
 
             if (nextSpell == _e)
             {
                 _e.Cast(currentTarget.ServerPosition);
+                nextSpell = null;
             }
         }
 
@@ -433,6 +434,7 @@ namespace yol0Riven
                 Utility.DelayAction.Add(100, delegate { AcquireTarget(); });
             }
         }
+
         public static void OnGameProcessPacket(GamePacketEventArgs args)
         {
             try
@@ -504,7 +506,6 @@ namespace yol0Riven
                     {
                         if (currentTarget != null && ProcessPackets && orbwalker.ActiveMode.ToString() == "Combo")
                         {
-                            Console.WriteLine("Move!");
                             Packet.C2S.Move.Encoded(new Packet.C2S.Move.Struct(currentTarget.ServerPosition.To2D().X,
                                 currentTarget.ServerPosition.To2D().Y, 3, currentTarget.NetworkId)).Send();
                             Orbwalking.ResetAutoAttackTimer();
@@ -745,8 +746,11 @@ namespace yol0Riven
                     else if (SpellName == "RivenMartyr")
                     {
                         // Cancel W animation with Q
-                        if (_q.IsReady() && currentTarget.IsValidTarget(_q.Range))
-                            nextSpell = _q;
+                        if (_q.IsReady(1))
+                        {
+                            nextSpell = null;
+                            Utility.DelayAction.Add(250, delegate { nextSpell = _q; });
+                        }
                         else
                         {
                             nextSpell = null;
