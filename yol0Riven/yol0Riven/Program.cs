@@ -325,6 +325,11 @@ namespace yol0Riven
                 if (!currentTarget.IsValidTarget(_e.Range + _q.Range + Player.AttackRange))
                     AcquireTarget();
 
+                if (SimpleTs.GetSelectedTarget() != null && SimpleTs.GetSelectedTarget() != currentTarget && SimpleTs.GetSelectedTarget().IsVisible && SimpleTs.GetSelectedTarget().IsValidTarget())
+                {
+                    currentTarget = SimpleTs.GetSelectedTarget();
+                }
+
                 if (!currentTarget.IsDead && currentTarget.IsVisible)
                 {
                     GapClose(currentTarget);
@@ -334,7 +339,7 @@ namespace yol0Riven
             else
             {
                 orbwalker.SetMovement(true);
-                if (!IsRecalling && qCount != 0 && lastQCast + (3650 - Game.Ping/2) < Environment.TickCount &&
+                if (!IsRecalling && qCount != 0 && lastQCast + (3650 - Game.Ping / 2) < Environment.TickCount &&
                     Config.SubMenu("Misc").Item("QKeepAlive").GetValue<bool>())
                 {
                     _q.Cast(Game.CursorPos);
@@ -401,7 +406,7 @@ namespace yol0Riven
 
             if (nextSpell == null && UseAttack)
             {
-                Orbwalking.LastAATick = Environment.TickCount + Game.Ping/2;
+                Orbwalking.LastAATick = Environment.TickCount + Game.Ping / 2;
                 Player.IssueOrder(GameObjectOrder.AttackUnit, currentTarget);
             }
 
@@ -490,7 +495,7 @@ namespace yol0Riven
                     {
                         if (ProcessPackets)
                         {
-                            
+
                             if (!Config.SubMenu("Misc").Item("DCFix").GetValue<bool>())
                                 CancelAnimation();
                             Orbwalking.ResetAutoAttackTimer();
@@ -587,18 +592,18 @@ namespace yol0Riven
             if (_r.Level == 0)
                 return 0.0;
 
-            minDmg = (80 + (40*(_r.Level - 1))) +
-                     0.6*((0.2*(Player.BaseAttackDamage + Player.FlatPhysicalDamageMod)) + Player.FlatPhysicalDamageMod);
+            minDmg = (80 + (40 * (_r.Level - 1))) +
+                     0.6 * ((0.2 * (Player.BaseAttackDamage + Player.FlatPhysicalDamageMod)) + Player.FlatPhysicalDamageMod);
 
-            float targetPercentHealthMissing = 100*(1 - target.Health/target.MaxHealth);
+            float targetPercentHealthMissing = 100 * (1 - target.Health / target.MaxHealth);
             double dmg = 0.0;
             if (targetPercentHealthMissing > 75.0f)
             {
-                dmg = minDmg*3;
+                dmg = minDmg * 3;
             }
             else
             {
-                dmg = minDmg + minDmg*(0.0267*targetPercentHealthMissing);
+                dmg = minDmg + minDmg * (0.0267 * targetPercentHealthMissing);
             }
 
             double realDmg = Player.CalcDamage(target, Damage.DamageType.Physical, dmg - 20);
@@ -607,27 +612,27 @@ namespace yol0Riven
 
         private static double GetUltiQDamage(Obj_AI_Base target) // account for bonus ulti AD
         {
-            double dmg = 10 + ((_q.Level - 1)*20) + 0.6*(1.2*(Player.BaseAttackDamage + Player.FlatPhysicalDamageMod));
+            double dmg = 10 + ((_q.Level - 1) * 20) + 0.6 * (1.2 * (Player.BaseAttackDamage + Player.FlatPhysicalDamageMod));
             return Player.CalcDamage(target, Damage.DamageType.Physical, dmg - 10);
         }
 
         private static double GetUltiWDamage(Obj_AI_Base target) // account for bonus ulti AD
         {
             float totalAD = Player.FlatPhysicalDamageMod + Player.BaseAttackDamage;
-            double dmg = 50 + ((_w.Level - 1)*30) + (0.2*totalAD + Player.FlatPhysicalDamageMod);
+            double dmg = 50 + ((_w.Level - 1) * 30) + (0.2 * totalAD + Player.FlatPhysicalDamageMod);
             return Player.CalcDamage(target, Damage.DamageType.Physical, dmg - 10);
         }
 
         private static double GetQDamage(Obj_AI_Base target)
         {
             float totalAD = Player.FlatPhysicalDamageMod + Player.BaseAttackDamage;
-            double dmg = 10 + ((_q.Level - 1)*20) + (0.35 + (Player.Level*0.05))*totalAD;
+            double dmg = 10 + ((_q.Level - 1) * 20) + (0.35 + (Player.Level * 0.05)) * totalAD;
             return Player.CalcDamage(target, Damage.DamageType.Physical, dmg - 10);
         }
 
         private static double GetWDamage(Obj_AI_Base target)
         {
-            float dmg = 50 + (_w.Level*30) + Player.FlatPhysicalDamageMod;
+            float dmg = 50 + (_w.Level * 30) + Player.FlatPhysicalDamageMod;
             return Player.CalcDamage(target, Damage.DamageType.Physical, dmg - 10);
         }
 
@@ -639,9 +644,9 @@ namespace yol0Riven
             double wDamage = GetWDamage(target);
             double tDamage = 0.0;
             double aDamage = Player.GetAutoAttackDamage(target);
-            double pDmgMultiplier = 0.2 + (0.05*Math.Floor(Player.Level/3.0));
+            double pDmgMultiplier = 0.2 + (0.05 * Math.Floor(Player.Level / 3.0));
             float totalAD = Player.BaseAttackDamage + Player.FlatPhysicalDamageMod;
-            double pDamage = Player.CalcDamage(target, Damage.DamageType.Physical, pDmgMultiplier*totalAD);
+            double pDamage = Player.CalcDamage(target, Damage.DamageType.Physical, pDmgMultiplier * totalAD);
 
             if (_tiamat.IsReady() || _tiamat2.IsReady())
                 tDamage = Player.GetItemDamage(target, Damage.DamageItems.Tiamat);
@@ -652,7 +657,7 @@ namespace yol0Riven
             if (!_w.IsReady())
                 wDamage = 0.0;
 
-            return wDamage + tDamage + (qDamage*(3 - qCount)) + (pDamage*(3 - qCount)) + aDamage*(3 - qCount);
+            return wDamage + tDamage + (qDamage * (3 - qCount)) + (pDamage * (3 - qCount)) + aDamage * (3 - qCount);
         }
 
         public static double DamageCalcR(Obj_AI_Base target)
@@ -665,10 +670,10 @@ namespace yol0Riven
             float totalAD = Player.FlatPhysicalDamageMod + Player.BaseAttackDamage;
 
 
-            double aDamage = Player.CalcDamage(target, Damage.DamageType.Physical, 0.2*totalAD + totalAD);
-            double pDmgMultiplier = 0.2 + (0.05*Math.Floor(Player.Level/3.0));
+            double aDamage = Player.CalcDamage(target, Damage.DamageType.Physical, 0.2 * totalAD + totalAD);
+            double pDmgMultiplier = 0.2 + (0.05 * Math.Floor(Player.Level / 3.0));
             double pDamage = Player.CalcDamage(target, Damage.DamageType.Physical,
-                pDmgMultiplier*(0.2*totalAD + totalAD));
+                pDmgMultiplier * (0.2 * totalAD + totalAD));
             if (_tiamat.IsReady() || _tiamat2.IsReady())
                 tDamage = Player.GetItemDamage(target, Damage.DamageItems.Tiamat);
 
@@ -680,8 +685,8 @@ namespace yol0Riven
 
             if (_r.IsReady())
                 rDamage = 0.0;
-            return (pDamage*(3 - qCount)) + (aDamage*(3 - qCount)) + wDamage + tDamage + rDamage +
-                   (qDamage*(3 - qCount));
+            return (pDamage * (3 - qCount)) + (aDamage * (3 - qCount)) + wDamage + tDamage + rDamage +
+                   (qDamage * (3 - qCount));
         }
 
 
@@ -746,10 +751,10 @@ namespace yol0Riven
                     else if (SpellName == "RivenMartyr")
                     {
                         // Cancel W animation with Q
-                        if (_q.IsReady(1))
+                        if (_q.IsReady())
                         {
                             nextSpell = null;
-                            Utility.DelayAction.Add(250, delegate { nextSpell = _q; });
+                            Utility.DelayAction.Add(175, delegate { nextSpell = _q; });
                         }
                         else
                         {
@@ -885,13 +890,13 @@ namespace yol0Riven
         public static void changeDirection1()
         {
             Player.IssueOrder(GameObjectOrder.HoldPosition, Player.ServerPosition);
-            Packet.C2S.Move.Encoded(new Packet.C2S.Move.Struct(startPoint.X + directionVector.X/rotateMultiplier,
-                startPoint.Y + directionVector.Y/rotateMultiplier)).Send();
+            Packet.C2S.Move.Encoded(new Packet.C2S.Move.Struct(startPoint.X + directionVector.X / rotateMultiplier,
+                startPoint.Y + directionVector.Y / rotateMultiplier)).Send();
 
             directionPos = new Vector3(startPoint.X, startPoint.Y, startPoint.Z);
-            directionPos.X = startPoint.X + directionVector.X/rotateMultiplier;
-            directionPos.Y = startPoint.Y + directionVector.Y/rotateMultiplier;
-            directionPos.Z = startPoint.Z + directionVector.Z/rotateMultiplier;
+            directionPos.X = startPoint.X + directionVector.X / rotateMultiplier;
+            directionPos.Y = startPoint.Y + directionVector.Y / rotateMultiplier;
+            directionPos.Z = startPoint.Z + directionVector.Z / rotateMultiplier;
             Utility.DelayAction.Add(60, delegate { changeDirection2(); });
         }
 
