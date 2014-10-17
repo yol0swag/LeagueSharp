@@ -26,7 +26,7 @@ namespace yol0Riven
 
     internal class Program
     {
-        public const string Revision = "1.0.0.8";
+        public const string Revision = "1.0.0.9";
         public static Obj_AI_Hero Player = ObjectManager.Player;
         public static Orbwalking.Orbwalker orbwalker;
 
