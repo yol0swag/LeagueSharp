@@ -446,6 +446,18 @@ namespace yol0Draven
                     }
                 }
             }
+            else
+            {
+                _orbWalkPos = new Vector3();
+                if (UsingLXOrbwalker)
+                {
+                    LXOrbwalker.CustomOrbwalkMode = false;
+                }
+                else if (orbwalker != null)
+                {
+                    orbwalker.SetOrbwalkingPoint(new Vector3());
+                }
+            }
 
             if (Config.SubMenu("Reticle").Item("Mode").GetValue<StringList>().SelectedIndex == 0)
             {
@@ -462,24 +474,14 @@ namespace yol0Draven
                         if (UsingLXOrbwalker)
                         {
                             LXOrbwalker.CustomOrbwalkMode = true;
-                            // PUC WIZARDRY
-                            var newpos = Game.CursorPos - closestToMouse.gameobj.Position;
-                            newpos.Normalize();
-                            var pos = closestToMouse.gameobj.Position + (newpos * (49 + Player.BoundingRadius / 2));
-                            _orbWalkPos = pos;
-                            LXOrbwalker.Orbwalk(pos, LXOrbwalker.GetPossibleTarget());
+                            LXOrbwalker.Orbwalk(closestToMouse.gameobj.Position, LXOrbwalker.GetPossibleTarget());
                         }
                         else if (orbwalker != null)
                         {
-                            // PUC WIZARDRY
-                            var newpos = Game.CursorPos - closestToMouse.gameobj.Position;
-                            newpos.Normalize();
-                            var pos = closestToMouse.gameobj.Position + (newpos * (49 + Player.BoundingRadius / 2));
-                            _orbWalkPos = pos;
-                            orbwalker.SetOrbwalkingPoint(pos);
+                            orbwalker.SetOrbwalkingPoint(closestToMouse.gameobj.Position);
                         }
                     }
-                    else
+                    /*else
                     {
                         _orbWalkPos = new Vector3();
                         if (UsingLXOrbwalker)
@@ -491,7 +493,7 @@ namespace yol0Draven
                             orbwalker.SetOrbwalkingPoint(new Vector3());
                         }
 
-                    }
+                    }*/
                 }
 
 
@@ -515,22 +517,14 @@ namespace yol0Draven
                         if (UsingLXOrbwalker)
                         {
                             LXOrbwalker.CustomOrbwalkMode = true;
-                            // PUC WIZARDRY
-                            var newpos = Game.CursorPos - closestToPlayer.gameobj.Position;
-                            newpos.Normalize();
-                            var pos = closestToPlayer.gameobj.Position + (newpos*(49 + Player.BoundingRadius/2));
-                            LXOrbwalker.Orbwalk(pos, LXOrbwalker.GetPossibleTarget());
+                            LXOrbwalker.Orbwalk(closestToPlayer.gameobj.Position, LXOrbwalker.GetPossibleTarget());
                         }
                         else if (orbwalker != null)
                         {
-                            // PUC WIZARDRY
-                            var newpos = Game.CursorPos - closestToPlayer.gameobj.Position;
-                            newpos.Normalize();
-                            var pos = closestToPlayer.gameobj.Position + (newpos * (49 + Player.BoundingRadius / 2));
-                            orbwalker.SetOrbwalkingPoint(pos);
+                            orbwalker.SetOrbwalkingPoint(closestToPlayer.gameobj.Position);
                         }
                     }
-                    else
+                    /*else
                     {
                         _orbWalkPos = new Vector3();
                         if (UsingLXOrbwalker)
@@ -541,7 +535,7 @@ namespace yol0Draven
                         {
                             orbwalker.SetOrbwalkingPoint(new Vector3());
                         }
-                    }
+                    }*/
                 }
             }
             else
