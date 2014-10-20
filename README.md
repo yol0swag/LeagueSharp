@@ -21,3 +21,17 @@ Tip - <b>Buy a Tiamat</b> - It speeds up combo so much and gives you a big spike
 If you find any bugs or have any suggestions, feel free to either open an issue here on GitHub or find me on the LeagueSharp IRC (yol0)
 
 Happy pwning
+
+yol0 Draven
+===========
+
+Features -
+
+<ul>
+<li><b>Choice of Orbwalker</b> - LeagueSharp.Common or LXOrbwalker</li>
+<li><b>Combo Mode</b> - Kill the fuck out of people</li>
+<li><b>Harass Mode</b> - Mixed mode with axe catching</li>
+<li><b>Lane Clear</b> with axe catching</b></li>
+<li><b>Farming</b> with axe catching</li>
+<li><b>KS</b> with R</li>
+</ul>
