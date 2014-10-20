@@ -26,7 +26,7 @@ namespace yol0Draven
             public long ExpireTime;
         };
 
-        private const string Revision = "1.0.0.0";
+        private const string Revision = "1.0.0.1";
         private static Obj_AI_Hero Player = ObjectManager.Player;
         private static Orbwalking.Orbwalker orbwalker;
 
@@ -459,15 +459,24 @@ namespace yol0Draven
 
                     if ((force || canReach) && qMouseDistance < qMouseRadius && qHeroDistance > qPlayerRadius)
                     {
-                        _orbWalkPos = closestToMouse.gameobj.Position;
                         if (UsingLXOrbwalker)
                         {
                             LXOrbwalker.CustomOrbwalkMode = true;
-                            LXOrbwalker.Orbwalk(closestToMouse.gameobj.Position, LXOrbwalker.GetPossibleTarget());
+                            // PUC WIZARDRY
+                            var newpos = Game.CursorPos - closestToMouse.gameobj.Position;
+                            newpos.Normalize();
+                            var pos = closestToMouse.gameobj.Position + (newpos * (49 + Player.BoundingRadius / 2));
+                            _orbWalkPos = pos;
+                            LXOrbwalker.Orbwalk(pos, LXOrbwalker.GetPossibleTarget());
                         }
                         else if (orbwalker != null)
                         {
-                            orbwalker.SetOrbwalkingPoint(closestToMouse.gameobj.Position);
+                            // PUC WIZARDRY
+                            var newpos = Game.CursorPos - closestToMouse.gameobj.Position;
+                            newpos.Normalize();
+                            var pos = closestToMouse.gameobj.Position + (newpos * (49 + Player.BoundingRadius / 2));
+                            _orbWalkPos = pos;
+                            orbwalker.SetOrbwalkingPoint(pos);
                         }
                     }
                     else
@@ -506,11 +515,19 @@ namespace yol0Draven
                         if (UsingLXOrbwalker)
                         {
                             LXOrbwalker.CustomOrbwalkMode = true;
-                            LXOrbwalker.Orbwalk(closestToPlayer.gameobj.Position, LXOrbwalker.GetPossibleTarget());
+                            // PUC WIZARDRY
+                            var newpos = Game.CursorPos - closestToPlayer.gameobj.Position;
+                            newpos.Normalize();
+                            var pos = closestToPlayer.gameobj.Position + (newpos*(49 + Player.BoundingRadius/2));
+                            LXOrbwalker.Orbwalk(pos, LXOrbwalker.GetPossibleTarget());
                         }
                         else if (orbwalker != null)
                         {
-                            orbwalker.SetOrbwalkingPoint(closestToPlayer.gameobj.Position);
+                            // PUC WIZARDRY
+                            var newpos = Game.CursorPos - closestToPlayer.gameobj.Position;
+                            newpos.Normalize();
+                            var pos = closestToPlayer.gameobj.Position + (newpos * (49 + Player.BoundingRadius / 2));
+                            orbwalker.SetOrbwalkingPoint(pos);
                         }
                     }
                     else
