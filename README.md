@@ -44,7 +44,6 @@ Features -
 <li><b>xSLX Orbwalker</b></li>
 <li><b>SimpleTS Target Selector</b>
 	<ul><li>Assembly will focus the target you left click</li></ul>
-	</li>
 <li><b>Combo Mode</b>
 	<ul><li>If target is in flay range, use flay and then hook, otherwise use hook then flay</li>
 		<li>If you hit a minion with hook and can jump to the minion to flay target, do that</li>
