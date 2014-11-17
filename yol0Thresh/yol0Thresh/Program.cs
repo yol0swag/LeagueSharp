@@ -199,7 +199,7 @@ namespace yol0Thresh
             UpdateSouls();
             UpdateBuffs();
 
-            if (Config.SubMenu("Misc").Item("dashes").GetValue<bool>())
+            /*if (Config.SubMenu("Misc").Item("dashes").GetValue<bool>())
             {
                 foreach (Obj_AI_Hero enemy in ObjectManager.Get<Obj_AI_Hero>().Where(unit => unit.Team != Player.Team))
                 {
@@ -223,7 +223,7 @@ namespace yol0Thresh
                         _E.Cast(new Vector2(pX, pY), PacketCasting());
                     }
                 }
-            }
+            }*/
 
             if (xSLxOrbwalker.CurrentMode == xSLxOrbwalker.Mode.Combo)
                 Combo();
