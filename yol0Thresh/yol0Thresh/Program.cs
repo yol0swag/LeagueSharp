@@ -156,7 +156,7 @@ namespace yol0Thresh
                         Config.SubMenu("Misc")
                             .SubMenu("InterruptSpells")
                             .SubMenu(spell.SpellName)
-                            .AddItem(new MenuItem("useQ", "Interrupt with Flay").SetValue(true));
+                            .AddItem(new MenuItem("useQ", "Interrupt with Hook").SetValue(true));
                     }
                 }
             }
