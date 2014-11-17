@@ -11,7 +11,7 @@ namespace yol0Thresh
 {
     internal class Program
     {
-        private static readonly string Revision = "1.0.0.0";
+        private static readonly string Revision = "1.0.0.1";
         private static readonly Obj_AI_Hero Player = ObjectManager.Player;
 
         private static readonly Spell _Q = new Spell(SpellSlot.Q, 1075);
@@ -206,12 +206,12 @@ namespace yol0Thresh
                     var pIn = new PredictionInput
                     {
                         Unit = enemy,
-                        Delay = 210,
+                        Delay = 300,
                         Aoe = false,
                         Collision = false,
                         Radius = 200,
                         Range = _E.Range,
-                        Speed = float.MaxValue,
+                        Speed = 2000,
                         Type = SkillshotType.SkillshotLine,
                         RangeCheckFrom = Player.ServerPosition,
                     };
@@ -405,9 +405,11 @@ namespace yol0Thresh
                     {
                         hookedUnit = obj;
                         hookTick = Environment.TickCount + 1500;
+                        return;
                     }
                 }
             }
+            hookedUnit = null;
         }
 
         private static void UpdateSouls()
@@ -542,7 +544,7 @@ namespace yol0Thresh
                 }
             }
 
-            if (Config.SubMenu("Lantern").Item("useW").GetValue<bool>() && _W.IsReady())
+            if (Config.SubMenu("Lantern").Item("useW").GetValue<bool>() && _W.IsReady() && hookedUnit is Obj_AI_Hero)
             {
                 Obj_AI_Hero nearAlly = GetNearAlly();
                 if (nearAlly != null)
