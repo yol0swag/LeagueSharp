@@ -4,14 +4,13 @@ using System.Linq;
 using LeagueSharp;
 using LeagueSharp.Common;
 using SharpDX;
-using xSLx_Orbwalker;
 using Color = System.Drawing.Color;
 
 namespace yol0Thresh
 {
     internal class Program
     {
-        private static readonly string Revision = "1.0.0.1";
+        private const string Revision = "1.0.0.2";
         private static readonly Obj_AI_Hero Player = ObjectManager.Player;
 
         private static readonly Spell _Q = new Spell(SpellSlot.Q, 1075);
@@ -56,9 +55,9 @@ namespace yol0Thresh
             if (Player.ChampionName != "Thresh")
                 return;
 
-            _Q.SetSkillshot(500f, 70, 1900, true, SkillshotType.SkillshotLine);
+            _Q.SetSkillshot(0.5f, 70, 1900, true, SkillshotType.SkillshotLine);
             _W.SetSkillshot(0f, 200, 1750, false, SkillshotType.SkillshotCircle);
-            _E.SetSkillshot(300f, 60, float.MaxValue, false, SkillshotType.SkillshotLine);
+            _E.SetSkillshot(0.3f, 60, float.MaxValue, false, SkillshotType.SkillshotLine);
 
             Config = new Menu("yol0 Thresh", "Thresh", true);
             Config.AddSubMenu(new Menu("Orbwalking", "Orbwalking"));
@@ -340,7 +339,7 @@ namespace yol0Thresh
 
         public static void OnCreateObj(GameObject obj, EventArgs args)
         {
-            if (obj.Name.Contains("Thresh_soul.troy") && obj.Team == Player.Team)
+            if (obj.Name.Contains("ChaosMinion") && obj.Team == Player.Team)
             {
                 soulList.Add(obj);
             }
@@ -387,7 +386,7 @@ namespace yol0Thresh
                 Config.SubMenu("Misc").SubMenu("Gapclosers").Item(gapcloser.SpellName.ToLower()).GetValue<bool>() &&
                 Player.Distance(gapcloser.Sender) < _E.Range + 100)
             {
-                Console.WriteLine("Gapcloser!");
+                //Console.WriteLine("Gapcloser!");
                 if (Player.Distance(gapcloser.Start) < Player.Distance(gapcloser.End))
                     PullFlay(gapcloser.Sender);
                 else
@@ -409,6 +408,7 @@ namespace yol0Thresh
                     }
                 }
             }
+            hookTick = 0;
             hookedUnit = null;
         }
 
@@ -522,15 +522,14 @@ namespace yol0Thresh
             }
             else if (Config.SubMenu("Combo").Item("useQ2").GetValue<bool>() && Player.Distance(currentTarget) > _E.Range &&
                      _Q.IsReady() &&
-                     Environment.TickCount >= hookTick - 500 && IsSecondQ() && hookedUnit != null &&
-                     hookedUnit is Obj_AI_Hero)
+                     Environment.TickCount >= hookTick - 500 && IsSecondQ() &&
+                     ObjectManager.Get<Obj_AI_Hero>().FirstOrDefault(unit => unit.HasBuff("ThreshQ")) != null)
             {
                 _Q.Cast(PacketCasting());
             }
             else if (Config.SubMenu("Combo").Item("useQ2").GetValue<bool>() &&
                      Config.SubMenu("Combo").Item("useE").GetValue<bool>() && _Q.IsReady() &&
-                     _E.IsReady() && hookedUnit != null && hookedUnit is Obj_AI_Minion && IsSecondQ() &&
-                     hookedUnit.Distance(currentTarget) <= _E.Range)
+                     _E.IsReady() && ObjectManager.Get<Obj_AI_Minion>().FirstOrDefault(unit => unit.HasBuff("ThreshQ") && unit.Distance(currentTarget) <= _E.Range) != null && IsSecondQ())
             {
                 _Q.Cast(PacketCasting());
             }
@@ -540,11 +539,14 @@ namespace yol0Thresh
             {
                 if (_Q.GetPrediction(currentTarget, false, qRange).Hitchance >= GetSelectedHitChance())
                 {
-                    _Q.Cast(currentTarget, PacketCasting());
+                    if (currentTarget.HasBuffOfType(BuffType.Slow))
+                        _Q.Cast(currentTarget.ServerPosition, PacketCasting());
+                    else
+                        _Q.Cast(currentTarget, PacketCasting());
                 }
             }
 
-            if (Config.SubMenu("Lantern").Item("useW").GetValue<bool>() && _W.IsReady() && hookedUnit is Obj_AI_Hero)
+            if (Config.SubMenu("Lantern").Item("useW").GetValue<bool>() && _W.IsReady() && ObjectManager.Get<Obj_AI_Hero>().FirstOrDefault(unit => unit.HasBuff("ThreshQ")) != null)
             {
                 Obj_AI_Hero nearAlly = GetNearAlly();
                 if (nearAlly != null)
