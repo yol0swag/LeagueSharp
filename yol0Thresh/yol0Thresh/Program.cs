@@ -33,7 +33,7 @@ namespace yol0Thresh
             get
             {
                 if (Hud.SelectedUnit != null && Hud.SelectedUnit is Obj_AI_Hero && Hud.SelectedUnit.Team != Player.Team)
-                    return (Obj_AI_Hero) Hud.SelectedUnit;
+                    return (Obj_AI_Hero)Hud.SelectedUnit;
                 if (SimpleTs.GetSelectedTarget() != null)
                     return SimpleTs.GetSelectedTarget();
                 return SimpleTs.GetTarget(qRange + 175, SimpleTs.DamageType.Physical);
@@ -90,7 +90,7 @@ namespace yol0Thresh
                     .SubMenu("ActionToTake")
                     .AddItem(
                         new MenuItem(enemy.ChampionName, enemy.ChampionName).SetValue(
-                            new StringList(new[] {"Pull", "Push"})));
+                            new StringList(new[] { "Pull", "Push" })));
             }
 
             Config.AddSubMenu(new Menu("Lantern Settings", "Lantern"));
@@ -108,7 +108,7 @@ namespace yol0Thresh
             Config.SubMenu("Misc")
                 .AddItem(
                     new MenuItem("qHitChance", "Q HitChance").SetValue(
-                        new StringList(new[] {"Very High", "High", "Medium", "Low"}, 1)));
+                        new StringList(new[] { "Very High", "High", "Medium", "Low" }, 1)));
             Config.SubMenu("Misc").AddItem(new MenuItem("dashes", "Flay Dash Gapclosers").SetValue(true));
             Config.SubMenu("Misc").AddItem(new MenuItem("packetCasting", "Use Packet Casting").SetValue(false));
 
@@ -311,7 +311,7 @@ namespace yol0Thresh
         {
             if (unit is Obj_AI_Hero)
             {
-                var hero = (Obj_AI_Hero) unit;
+                var hero = (Obj_AI_Hero)unit;
                 if (hero.Team != Player.Team)
                 {
                     if (hero.ChampionName == "Rengar" && args.Animation == "Spell5" && Player.Distance(hero) <= 725)
@@ -362,7 +362,7 @@ namespace yol0Thresh
                         .GetValue<bool>() && _E.IsReady() &&
                     Player.Distance(unit) < _E.Range)
                 {
-                    if (ShouldPull((Obj_AI_Hero) unit))
+                    if (ShouldPull((Obj_AI_Hero)unit))
                         PullFlay(unit);
                     else
                         PushFlay(unit);
@@ -386,7 +386,6 @@ namespace yol0Thresh
                 Config.SubMenu("Misc").SubMenu("Gapclosers").Item(gapcloser.SpellName.ToLower()).GetValue<bool>() &&
                 Player.Distance(gapcloser.Sender) < _E.Range + 100)
             {
-                //Console.WriteLine("Gapcloser!");
                 if (Player.Distance(gapcloser.Start) < Player.Distance(gapcloser.End))
                     PullFlay(gapcloser.Sender);
                 else
@@ -537,13 +536,14 @@ namespace yol0Thresh
             if (Config.SubMenu("Combo").Item("useQ1").GetValue<bool>() && _Q.IsReady() && IsFirstQ() &&
                 !IsImmune(currentTarget))
             {
-                if (_Q.GetPrediction(currentTarget, false, qRange).Hitchance >= GetSelectedHitChance())
+                _Q.CastIfHitchanceEquals(currentTarget, GetSelectedHitChance(), PacketCasting());
+                /*if (_Q.GetPrediction(currentTarget, false, qRange).Hitchance >= GetSelectedHitChance())
                 {
                     if (currentTarget.HasBuffOfType(BuffType.Slow))
                         _Q.Cast(currentTarget.ServerPosition, PacketCasting());
                     else
                         _Q.Cast(currentTarget, PacketCasting());
-                }
+                }*/
             }
 
             if (Config.SubMenu("Lantern").Item("useW").GetValue<bool>() && _W.IsReady() && ObjectManager.Get<Obj_AI_Hero>().FirstOrDefault(unit => unit.HasBuff("ThreshQ")) != null)
@@ -558,8 +558,8 @@ namespace yol0Thresh
 
         private static void Harass()
         {
-            float percentManaAfterQ = 100*((Player.Mana - _Q.Instance.ManaCost)/Player.MaxMana);
-            float percentManaAfterE = 100*((Player.Mana - _E.Instance.ManaCost)/Player.MaxMana);
+            float percentManaAfterQ = 100 * ((Player.Mana - _Q.Instance.ManaCost) / Player.MaxMana);
+            float percentManaAfterE = 100 * ((Player.Mana - _E.Instance.ManaCost) / Player.MaxMana);
             int minPercentMana = Config.SubMenu("Harass").Item("manaPercent").GetValue<Slider>().Value;
 
             if (Config.SubMenu("Harass").Item("useQ1").GetValue<bool>() && _Q.IsReady() && IsFirstQ() &&
@@ -624,7 +624,7 @@ namespace yol0Thresh
             {
                 if (lowAlly == null)
                     lowAlly = ally;
-                else if (!lowAlly.IsDead && ally.Health/ally.MaxHealth < lowAlly.Health/lowAlly.MaxHealth)
+                else if (!lowAlly.IsDead && ally.Health / ally.MaxHealth < lowAlly.Health / lowAlly.MaxHealth)
                     lowAlly = ally;
             }
             return lowAlly;
@@ -635,7 +635,7 @@ namespace yol0Thresh
             if (Hud.SelectedUnit != null && Hud.SelectedUnit is Obj_AI_Hero && Hud.SelectedUnit.Team == Player.Team &&
                 Player.Distance(Hud.SelectedUnit.Position) <= _W.Range + 200)
             {
-                return (Obj_AI_Hero) Hud.SelectedUnit;
+                return (Obj_AI_Hero)Hud.SelectedUnit;
             }
 
             Obj_AI_Hero nearAlly = null;
