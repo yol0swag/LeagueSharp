@@ -10,7 +10,7 @@ namespace yol0Thresh
 {
     internal class Program
     {
-        private const string Revision = "1.0.0.2";
+        private const string Revision = "1.0.0.3";
         private static readonly Obj_AI_Hero Player = ObjectManager.Player;
 
         private static readonly Spell _Q = new Spell(SpellSlot.Q, 1075);
@@ -34,9 +34,9 @@ namespace yol0Thresh
             {
                 if (Hud.SelectedUnit != null && Hud.SelectedUnit is Obj_AI_Hero && Hud.SelectedUnit.Team != Player.Team)
                     return (Obj_AI_Hero)Hud.SelectedUnit;
-                if (SimpleTs.GetSelectedTarget() != null)
-                    return SimpleTs.GetSelectedTarget();
-                return SimpleTs.GetTarget(qRange + 175, SimpleTs.DamageType.Physical);
+                if (TargetSelector.GetSelectedTarget() != null)
+                    return TargetSelector.GetSelectedTarget();
+                return TargetSelector.GetTarget(qRange + 175, TargetSelector.DamageType.Physical);
             }
         }
 
@@ -64,7 +64,7 @@ namespace yol0Thresh
             xSLxOrbwalker.AddToMenu(Config.SubMenu("Orbwalking"));
 
             Config.AddSubMenu(new Menu("Target Selector", "Target Selector"));
-            SimpleTs.AddToMenu(Config.SubMenu("Target Selector"));
+            TargetSelector.AddToMenu(Config.SubMenu("Target Selector"));
 
             Config.AddSubMenu(new Menu("Combo Settings", "Combo"));
             Config.SubMenu("Combo").AddItem(new MenuItem("useQ1", "Use Q1").SetValue(true));
@@ -232,14 +232,14 @@ namespace yol0Thresh
 
             if (Config.SubMenu("Flay").Item("pullEnemy").GetValue<KeyBind>().Active)
             {
-                Obj_AI_Hero target = SimpleTs.GetTarget(_E.Range, SimpleTs.DamageType.Physical);
+                Obj_AI_Hero target = TargetSelector.GetTarget(_E.Range, TargetSelector.DamageType.Physical);
                 if (target != null)
                     PullFlay(target);
             }
 
             if (Config.SubMenu("Flay").Item("pushEnemy").GetValue<KeyBind>().Active)
             {
-                Obj_AI_Hero target = SimpleTs.GetTarget(_E.Range, SimpleTs.DamageType.Physical);
+                Obj_AI_Hero target = TargetSelector.GetTarget(_E.Range, TargetSelector.DamageType.Physical);
                 if (target != null)
                     PushFlay(target);
             }
