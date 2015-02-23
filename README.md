@@ -4,7 +4,7 @@ yol0 Thresh
 Features - 
 <ul>
 <li><b>xSLx Orbwalker</b></li>
-<li><b>SimpleTS Target Selector</b>
+<li><b>LeagueSharp.Common Target Selector</b>
 	<ul><li>Assembly will focus the target you left click</li></ul>
 <li><b>Combo Mode</b>
 	<ul><li>If target is in flay range, use flay and then hook, otherwise use hook then flay</li>
