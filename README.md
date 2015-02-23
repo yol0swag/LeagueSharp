@@ -3,7 +3,7 @@ yol0 Thresh
 
 Features - 
 <ul>
-<li><b>xSLX Orbwalker</b></li>
+<li><b>xSLx Orbwalker</b></li>
 <li><b>SimpleTS Target Selector</b>
 	<ul><li>Assembly will focus the target you left click</li></ul>
 <li><b>Combo Mode</b>
@@ -48,3 +48,32 @@ Features -
 		<li>Draw Souls - not working</li>
 	</ul></li>
 </li>
+
+yol0 Garen
+===========
+
+Features - 
+<ul>
+<li><b>LeagueSharp.Common Orbwalker</b></li>
+<li><b>LeagueSharp.Common Target Selector</b></li>
+<li><b>Combo Mode</b>
+	<ul><li>Use Q, E, R</li>
+		<li>Use Ignite</li>
+		<li>Item Support (Tiamat, Hydra, Ghostblade, Cutlass, BotRK, Gunblade, Randuin's)</li>
+	</ul></li>
+<li><b>Lane Clear</b> - Smart E Positioning for maximum minions hit</li>
+<li><b>KS Options</b>
+	<ul><li>KS with Q</li>
+		<li>KS with E</li>
+		<li>KS with R</li>
+		<li>KS with Items</li>
+		<li>KS with Ignite</li>
+	</ul></li>
+<li><b>Drawings</b>
+	<ul><li>Draw Current Target</li>
+		<li>Draw E, R ranges</li>
+		<li>Draw Killable text</li>
+		<li>Draw Combo Damage on enemy Health bars</li>
+	</ul></li>
+</ul>
+		
