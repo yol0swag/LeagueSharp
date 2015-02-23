@@ -47,13 +47,14 @@ Features -
 		<li>Draw Target (with text)</li>
 		<li>Draw Souls - not working</li>
 	</ul></li>
-</li>
-
+</li></ul>
+</ul>
 
 yol0 Garen
 ===========
 
 Features - 
+
 <ul>
 <li><b>LeagueSharp.Common Orbwalker</b></li>
 <li><b>LeagueSharp.Common Target Selector</b></li>
@@ -77,4 +78,3 @@ Features -
 		<li>Draw Combo Damage on enemy Health bars</li>
 	</ul></li>
 </ul>
-		
