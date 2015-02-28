@@ -96,7 +96,7 @@ namespace ToasterLoading
         {
             try
             {
-                if (args.PacketData[0] != 33 || _escaped)
+                if (args.PacketData[0] != 30 || _escaped)
                 {
                     return;
                 }
