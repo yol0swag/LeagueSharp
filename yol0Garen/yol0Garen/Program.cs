@@ -92,7 +92,7 @@ namespace yol0Garen
 
             _Ignite = Player.GetSpellSlot("summonerdot");
 
-            Game.OnGameUpdate += OnGameUpdate;
+            Game.OnUpdate += OnGameUpdate;
             Drawing.OnDraw += OnDraw;
             Interrupter2.OnInterruptableTarget += OnInterruptibleTarget;
             Orbwalking.AfterAttack += AfterAttack;
