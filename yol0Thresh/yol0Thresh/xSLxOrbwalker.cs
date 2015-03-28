@@ -132,7 +132,7 @@ namespace yol0Thresh
             menu.AddItem(new MenuItem("xSLx_info2", "Credits: xSLx & Esk0r"));
 
             Drawing.OnDraw += OnDraw;
-            Game.OnGameUpdate += OnUpdate;
+            Game.OnUpdate += OnUpdate;
             Obj_AI_Base.OnProcessSpellCast += OnProcessSpell;
             GameObject.OnCreate += Obj_SpellMissile_OnCreate;
         }
