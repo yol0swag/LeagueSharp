@@ -324,7 +324,7 @@ namespace yol0Thresh
             #endregion
 
 
-            Game.OnGameUpdate += Game_OnGameUpdate;
+            Game.OnUpdate += Game_OnGameUpdate;
         }
 
         [Obsolete("OnPosibleToInterrupt is deprecated, please use OnPossibleToInterrupt instead.")]
