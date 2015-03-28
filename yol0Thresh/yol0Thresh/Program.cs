@@ -182,7 +182,7 @@ namespace yol0Thresh
             Obj_AI_Base.OnProcessSpellCast += OnProcessSpell;
             Obj_AI_Base.OnPlayAnimation += OnAnimation;
             Drawing.OnDraw += OnDraw;
-            Game.OnGameUpdate += OnGameUpdate;
+            Game.OnUpdate += OnGameUpdate;
             GameObject.OnCreate += OnCreateObj;
             AntiGapcloser.OnEnemyGapcloser += OnEnemyGapCloser;
             Interrupter.OnPossibleToInterrupt += OnPossibleToInterrupt;
