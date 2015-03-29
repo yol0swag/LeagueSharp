@@ -1,5 +1,5 @@
 ﻿//#define UPDATEMODE
-#define DISABLED
+//#define DISABLED
 
 /**************************
  * 
@@ -37,7 +37,7 @@ namespace ToasterLoading
         private static int Stage;
         private static string statusText;
         private static string statusText2;
-        private static byte PacketHeader = 30; //TODO: update when OnSendPacket fixed
+        private static byte PacketHeader = 103;
         private static bool GameStarted;
 
         static void Main(string[] args)
