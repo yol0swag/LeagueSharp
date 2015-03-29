@@ -37,7 +37,7 @@ namespace ToasterLoading
         private static int Stage;
         private static string statusText;
         private static string statusText2;
-        private static byte PacketHeader = 103;
+        private static byte PacketHeader = 103; //TODO: update when OnSendPacket fixed
         private static bool GameStarted;
 
         static void Main(string[] args)
@@ -79,7 +79,7 @@ namespace ToasterLoading
                         case 1: statusText = "Packet caught. Press spacebar when you're ready to play"; textColor = Color.LimeGreen; break;
                         case 2: statusText = "Toaster disabled. Game will start in several seconds"; textColor = Color.Turquoise; break;
                     }
-                    Drawing.DrawText(10, 30, textColor, statusText);
+                    Drawing.DrawText(10, 30, textColor, statusText + statusText2);
 #else
                     Drawing.DrawText(10, 10, Color.Tomato, "Toaster Loading is outdated");
 #endif
