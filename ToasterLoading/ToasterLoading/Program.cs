@@ -1,5 +1,5 @@
 ﻿//#define UPDATEMODE
-//#define DISABLED
+#define DISABLED
 
 /**************************
  * 
@@ -39,7 +39,9 @@ namespace ToasterLoading
         private static string statusText2;
         private static byte PacketHeader = 103; //TODO: update when OnSendPacket fixed
         private static bool GameStarted;
-
+#if DISABLED
+		private const string Patch = "5.7";
+#endif
         static void Main(string[] args)
         {
             Drawing.OnDraw += Drawing_OnDraw;
@@ -81,7 +83,7 @@ namespace ToasterLoading
                     }
                     Drawing.DrawText(10, 30, textColor, statusText + statusText2);
 #else
-                    Drawing.DrawText(10, 10, Color.Tomato, "Toaster Loading is outdated");
+                    Drawing.DrawText(10, 10, Color.Tomato, "Toaster Loading is outdated for patch " + Patch);
 #endif
                     
                 }
