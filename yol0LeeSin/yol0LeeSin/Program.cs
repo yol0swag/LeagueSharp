@@ -210,7 +210,7 @@ namespace yol0LeeSin
         #region Combo
         private static void Combo(Obj_AI_Hero target)
         {
-            _orbwalker.SetMovement(false);
+            //_orbwalker.SetMovement(false);
             if (target.HasBuff("BlindMonkQOne") && _Q.IsReady() && Player.Mana >= 30)
             {
                 var qDmg = Player.GetSpellDamage(target, SpellSlot.Q, 1);
@@ -387,7 +387,7 @@ namespace yol0LeeSin
                     _Q2.Cast();
                 }
             }
-            _orbwalker.SetMovement(true);
+            //_orbwalker.SetMovement(true);
         }
         #endregion
         #region Escape
