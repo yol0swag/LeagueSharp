@@ -87,7 +87,7 @@ namespace yol0Brand
             };
             
             _Q.SetSkillshot(0.625f, 50f, 1600f, true, SkillshotType.SkillshotLine);
-            _W.SetSkillshot(1.0, 240f, int.MaxValue, false, SkillshotType.SkillshotCircle);
+            _W.SetSkillshot(1.0f, 240f, int.MaxValue, false, SkillshotType.SkillshotCircle);
 
             var ignite = Player.Spellbook.Spells.FirstOrDefault(spell => spell.Name == "summonerdot");
             if (ignite != null)
