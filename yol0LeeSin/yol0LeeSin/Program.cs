@@ -49,9 +49,9 @@ namespace yol0LeeSin
             _menu.AddSubMenu(new Menu("Target Selector", "Target Selector"));
             _menu.AddSubMenu(new Menu("Orbwalker", "Orbwalker"));
             _menu.AddSubMenu(new Menu("Keys", "Keys"));
-            _menu.AddSubMenu(new Menu("Combo", "Combo"));
+            //_menu.AddSubMenu(new Menu("Combo", "Combo"));
             _menu.AddSubMenu(new Menu("Insec", "Insec"));
-            _menu.AddSubMenu(new Menu("Dodge", "Dodge"));
+            //_menu.AddSubMenu(new Menu("Dodge", "Dodge"));
             _menu.AddSubMenu(new Menu("Drawing", "Draw"));
 
             TargetSelector.AddToMenu(_menu.SubMenu("Target Selector"));
@@ -60,15 +60,15 @@ namespace yol0LeeSin
             _menu.SubMenu("Keys").AddItem(new MenuItem("Insec", "Insec").SetValue(new KeyBind("X".ToArray()[0], KeyBindType.Press)));
             _menu.SubMenu("Keys").AddItem(new MenuItem("Escape", "Escape (Ward Jump)").SetValue(new KeyBind("A".ToArray()[0], KeyBindType.Press)));
 
-            _menu.SubMenu("Combo").AddItem(new MenuItem("useQ", "Use Q").SetValue(true));
-            _menu.SubMenu("Combo").AddItem(new MenuItem("useQ2", "Use Q2").SetValue(true));
-            _menu.SubMenu("Combo").AddItem(new MenuItem("useW", "Use W").SetValue(false));
-            _menu.SubMenu("Combo").AddItem(new MenuItem("useW2", "Use W2").SetValue(true));
-            _menu.SubMenu("Combo").AddItem(new MenuItem("useE", "Use E").SetValue(true));
-            _menu.SubMenu("Combo").AddItem(new MenuItem("useE2", "Use E2").SetValue(true));
-            _menu.SubMenu("Combo").AddItem(new MenuItem("useR", "Use R").SetValue(true));
-            _menu.SubMenu("Combo").AddItem(new MenuItem("useI", "Use Ignite").SetValue(true));
-            _menu.SubMenu("Combo").AddItem(new MenuItem("useItems", "Use Items").SetValue(true));
+            //_menu.SubMenu("Combo").AddItem(new MenuItem("useQ", "Use Q").SetValue(true));
+            //_menu.SubMenu("Combo").AddItem(new MenuItem("useQ2", "Use Q2").SetValue(true));
+            //_menu.SubMenu("Combo").AddItem(new MenuItem("useW", "Use W").SetValue(false));
+            //_menu.SubMenu("Combo").AddItem(new MenuItem("useW2", "Use W2").SetValue(true));
+            //_menu.SubMenu("Combo").AddItem(new MenuItem("useE", "Use E").SetValue(true));
+            //_menu.SubMenu("Combo").AddItem(new MenuItem("useE2", "Use E2").SetValue(true));
+            //_menu.SubMenu("Combo").AddItem(new MenuItem("useR", "Use R").SetValue(true));
+            //_menu.SubMenu("Combo").AddItem(new MenuItem("useI", "Use Ignite").SetValue(true));
+            //_menu.SubMenu("Combo").AddItem(new MenuItem("useItems", "Use Items").SetValue(true));
 
             _menu.SubMenu("Insec").AddItem(new MenuItem("method", "Insec Method").SetValue(new StringList(new[] { "Wardjump only", "Flash Only", "Wardjump + Flash" }, 2)));
             _menu.SubMenu("Insec").AddItem(new MenuItem("mode", "Insec Mode").SetValue(new StringList(new[] { "To Ally", "To Mouse" }, 0)));
