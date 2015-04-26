@@ -36,7 +36,11 @@ namespace yol0LeeSin
         private static int wTimer;
         private static int eTimer;
 
+        private static int lastWardCast;
+
         private static Obj_AI_Hero _target;
+
+
 
         static void Main(string[] args)
         {
@@ -58,7 +62,8 @@ namespace yol0LeeSin
             _orbwalker = new Orbwalking.Orbwalker(_menu.SubMenu("Orbwalker"));
 
             _menu.SubMenu("Keys").AddItem(new MenuItem("Insec", "Insec").SetValue(new KeyBind("X".ToArray()[0], KeyBindType.Press)));
-            _menu.SubMenu("Keys").AddItem(new MenuItem("Escape", "Escape (Ward Jump)").SetValue(new KeyBind("A".ToArray()[0], KeyBindType.Press)));
+            _menu.SubMenu("Keys").AddItem(new MenuItem("Escape", "Escape").SetValue(new KeyBind("A".ToArray()[0], KeyBindType.Press)));
+            _menu.SubMenu("Keys").AddItem(new MenuItem("Wardjump", "Ward Jump").SetValue(new KeyBind("Z".ToArray()[0], KeyBindType.Press)));
 
             //_menu.SubMenu("Combo").AddItem(new MenuItem("useQ", "Use Q").SetValue(true));
             //_menu.SubMenu("Combo").AddItem(new MenuItem("useQ2", "Use Q2").SetValue(true));
@@ -71,7 +76,7 @@ namespace yol0LeeSin
             //_menu.SubMenu("Combo").AddItem(new MenuItem("useItems", "Use Items").SetValue(true));
 
             _menu.SubMenu("Insec").AddItem(new MenuItem("method", "Insec Method").SetValue(new StringList(new[] { "Wardjump only", "Flash Only", "Wardjump + Flash" }, 2)));
-            _menu.SubMenu("Insec").AddItem(new MenuItem("mode", "Insec Mode").SetValue(new StringList(new[] { "To Ally", "To Mouse" }, 0)));
+            _menu.SubMenu("Insec").AddItem(new MenuItem("mode", "Insec Mode").SetValue(new StringList(new[] { "To Ally", "To Mouse", "To Turret" }, 0)));
 
             _menu.SubMenu("Draw").AddItem(new MenuItem("drawQ", "Draw Q Range").SetValue(new Circle(true, Color.Green)));
             _menu.SubMenu("Draw").AddItem(new MenuItem("drawW", "Draw W Range").SetValue(new Circle(true, Color.Green)));
@@ -146,7 +151,7 @@ namespace yol0LeeSin
                 var wts2 = Drawing.WorldToScreen(endPos.To3D());
 
                 Drawing.DrawLine(wts1, wts2, 2, Color.Green);
-                
+
             }
 
         }
@@ -160,7 +165,11 @@ namespace yol0LeeSin
                 Escape();
             }
 
-            
+            if (_menu.SubMenu("Keys").Item("Wardjump").GetValue<KeyBind>().Active)
+            {
+                Wardjump();
+            }
+
             if (_menu.SubMenu("Keys").Item("Insec").GetValue<KeyBind>().Active)
             {
                 if (Hud.SelectedUnit != null && _target.NetworkId == Hud.SelectedUnit.NetworkId)
@@ -185,6 +194,10 @@ namespace yol0LeeSin
                     eTimer = Environment.TickCount + 3000;
                 else if (args.SData.Name == "BlindMonkRKick")
                     Orbwalking.ResetAutoAttackTimer();
+
+                else if (args.SData.Name.Contains("ward") || args.SData.Name.Contains("Trinket"))
+                    lastWardCast = Environment.TickCount;
+
             }
         }
         #endregion
@@ -206,14 +219,21 @@ namespace yol0LeeSin
 
             return qDmg + eDmg + rDmg + aDmg * 2 + iDmg;
         }
+
+        private static double GetQ2Damage(Obj_AI_Hero target, double dmg)
+        {
+            var hpafter = target.Health - dmg;
+            var qDmg = ((_Q.Level * 30) + 20) + (Player.BaseAttackDamage * 0.9) + (0.08 * (target.MaxHealth - hpafter));
+            return Damage.CalcDamage(Player, target, Damage.DamageType.Physical, qDmg);
+        }
         #endregion
         #region Combo
         private static void Combo(Obj_AI_Hero target)
         {
-            //_orbwalker.SetMovement(false);
+            _orbwalker.SetMovement(false);
             if (target.HasBuff("BlindMonkQOne") && _Q.IsReady() && Player.Mana >= 30)
             {
-                var qDmg = Player.GetSpellDamage(target, SpellSlot.Q, 1);
+                
                 var eDmg = Player.GetSpellDamage(target, SpellSlot.E);
                 var rDmg = Player.GetSpellDamage(target, SpellSlot.R);
                 var iDmg = _I != SpellSlot.Unknown ? Player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite) : 0.0;
@@ -221,7 +241,7 @@ namespace yol0LeeSin
 
                 if (target.IsValidTarget(_Q2.Range))
                 {
-                    if (qDmg > target.Health)
+                    if (GetQ2Damage(target, 0) > target.Health)
                     {
                         _Q2.Cast();
                         return;
@@ -230,13 +250,13 @@ namespace yol0LeeSin
 
                 if (_E.IsReady() && Player.Mana >= 80)
                 {
-                    if (target.Health <= eDmg + qDmg && target.IsValidTarget(_E.Range))
+                    if (target.Health <= eDmg + GetQ2Damage(target, eDmg) && target.IsValidTarget(_E.Range))
                     {
                         _E.Cast();
                         _Q2.Cast();
                         return;
                     }
-                    else if (target.Health <= eDmg + qDmg + iDmg && target.IsValidTarget(_E.Range))
+                    else if (target.Health <= eDmg + GetQ2Damage(target, eDmg) + iDmg && target.IsValidTarget(_E.Range))
                     {
                         Player.Spellbook.CastSpell(_I, target);
                         _E.Cast();
@@ -247,20 +267,20 @@ namespace yol0LeeSin
 
                 if (_R.IsReady() && _E.IsReady() && Player.Mana >= 80)
                 {
-                    if (target.Health <= eDmg + rDmg + qDmg && target.IsValidTarget(_E.Range))
+                    if (target.Health <= eDmg + rDmg + GetQ2Damage(target, eDmg + rDmg) && target.IsValidTarget(_E.Range))
                     {
                         _E.Cast();
                         _R.CastOnUnit(target);
                         _Q2.Cast();
                         return;
                     }
-                    else if (target.Health <= qDmg + rDmg && target.IsValidTarget(_Q2.Range))
+                    else if (target.Health <= GetQ2Damage(target, rDmg) + rDmg && target.IsValidTarget(_Q2.Range))
                     {
                         _R.CastOnUnit(target);
                         _Q2.Cast();
                         return;
                     }
-                    else if (target.Health <= qDmg + rDmg + eDmg + iDmg && target.IsValidTarget(_E.Range))
+                    else if (target.Health <= GetQ2Damage(target, rDmg + eDmg) + rDmg + eDmg + iDmg && target.IsValidTarget(_E.Range))
                     {
                         Player.Spellbook.CastSpell(_I, target);
                         _E.Cast();
@@ -277,13 +297,13 @@ namespace yol0LeeSin
                         _R.CastOnUnit(target);
                         return;
                     }
-                    else if (target.Health <= rDmg + qDmg && target.IsValidTarget(_R.Range))
+                    else if (target.Health <= rDmg + GetQ2Damage(target, rDmg) && target.IsValidTarget(_R.Range))
                     {
                         _R.CastOnUnit(target);
                         _Q2.Cast();
                         return;
                     }
-                    else if (target.Health <= rDmg + qDmg + iDmg && target.IsValidTarget(_R.Range))
+                    else if (target.Health <= rDmg + GetQ2Damage(target, rDmg) + iDmg && target.IsValidTarget(_R.Range))
                     {
                         Player.Spellbook.CastSpell(_I, target);
                         _R.CastOnUnit(target);
@@ -291,11 +311,6 @@ namespace yol0LeeSin
                         return;
                     }
                 }
-
-                
-
-                
-
             }
             else
             {
@@ -359,7 +374,7 @@ namespace yol0LeeSin
                             return;
                         }
                     }
-                    
+
                 }
 
                 if (_Q.IsReady())
@@ -387,15 +402,19 @@ namespace yol0LeeSin
                     _Q2.Cast();
                 }
             }
-            //_orbwalker.SetMovement(true);
+            _orbwalker.SetMovement(true);
         }
         #endregion
         #region Escape
+        private static bool CanCastWard()
+        {
+            return _W.Instance.Name == "BlindMonkWOne" && Environment.TickCount - 500 > lastWardCast && !Player.HasBuff("BlindMonkWOne");
+        }
         private static Obj_AI_Base GetEscapeObject(Vector3 pos, int range = 700)
         {
             var allies = HeroManager.Allies.Where(hero => hero.Distance(pos) <= range).OrderBy(hero => hero.Distance(pos)).ToList();
             var minions = MinionManager.GetMinions(pos, range, MinionTypes.All, MinionTeam.Ally).OrderBy(minion => minion.Distance(pos)).ToList();
-            var wards = ObjectManager.Get<Obj_AI_Minion>().Where(obj => (obj.Name.Contains("Ward") || obj.Name.Contains("Trinket")) && obj.IsAlly && pos.Distance(obj.Position) <= range).OrderBy(obj => obj.Distance(pos)).ToList();
+            var wards = ObjectManager.Get<Obj_AI_Minion>().Where(obj => (obj.Name.Contains("Ward") || obj.Name.Contains("ward") || obj.Name.Contains("Trinket")) && obj.IsAlly && pos.Distance(obj.Position) <= range).OrderBy(obj => obj.Distance(pos)).ToList();
             foreach (var ally in allies)
             {
                 if (!ally.IsMe)
@@ -412,26 +431,40 @@ namespace yol0LeeSin
                 return minion;
             }
 
-            
+
             return null;
         }
 
+        private static void Wardjump()
+        {
+            var escapeObject = GetEscapeObject(Game.CursorPos);
+            if (escapeObject != null)
+            {
+                if (CanCastW())
+                {
+                    wTimer = Environment.TickCount + 3000;
+                    _W.CastOnUnit(escapeObject);
+                }
+            }
+            else if (_W.IsReady() && !Player.HasBuff("BlindMonkWOne"))
+            {
+                var wardSlot = Items.GetWardSlot();
+                if (wardSlot.IsValidSlot() && Player.Spellbook.CanUseSpell(wardSlot.SpellSlot) == SpellState.Ready && CanCastWard())
+                {
+                    lastWardCast = Environment.TickCount;
+                    Player.Spellbook.CastSpell(wardSlot.SpellSlot, GetCorrectedMousePosition());
+                }
+            }
+        }
         private static void Escape()
         {
             var escapeObject = GetEscapeObject(Game.CursorPos);
             if (escapeObject != null)
             {
-                if (_W.IsReady())
+                if (CanCastW())
                 {
+                    wTimer = Environment.TickCount + 3000;
                     _W.CastOnUnit(escapeObject);
-                }
-            }
-            else
-            {
-                var wardSlot = Items.GetWardSlot();
-                if (wardSlot.IsValidSlot() && Player.Spellbook.CanUseSpell(wardSlot.SpellSlot) == SpellState.Ready)
-                {
-                    Player.Spellbook.CastSpell(wardSlot.SpellSlot, GetCorrectedMousePosition());
                 }
             }
         }
@@ -456,10 +489,16 @@ namespace yol0LeeSin
                 var dirVector = (target.Position - nearestTurret.Position).Normalized().To2D();
                 return target.Position.To2D() + (dirVector * 250);
             }
-            else
+            else if (_menu.SubMenu("Insec").Item("mode").GetValue<StringList>().SelectedValue == "To Mouse")
             {
                 var directionVector = (target.Position - Game.CursorPos).Normalized().To2D();
                 return target.Position.To2D() + (directionVector * 250);
+            }
+            else
+            {
+                var nearestTurret = ObjectManager.Get<Obj_AI_Turret>().Where(obj => obj.IsAlly).OrderBy(obj => Player.Distance(obj.Position)).ToList()[0];
+                var dirVector = (target.Position - nearestTurret.Position).Normalized().To2D();
+                return target.Position.To2D() + (dirVector * 250);
             }
         }
 
@@ -467,7 +506,7 @@ namespace yol0LeeSin
         {
             var allies = HeroManager.Allies.Where(hero => hero.Distance(pos) <= range).OrderBy(hero => hero.Distance(pos)).ToList();
             var minions = MinionManager.GetMinions(pos, range, MinionTypes.All, MinionTeam.Ally).OrderBy(minion => minion.Distance(pos)).ToList();
-            var wards = ObjectManager.Get<Obj_AI_Minion>().Where(obj => (obj.Name.Contains("Ward") || obj.Name.Contains("Trinket")) && obj.IsAlly && pos.Distance(obj.Position) <= range).OrderByDescending(obj => obj.Distance(pos)).ToList();
+            var wards = ObjectManager.Get<Obj_AI_Minion>().Where(obj => (obj.Name.Contains("ward") || obj.Name.Contains("Ward") || obj.Name.Contains("Trinket")) && obj.IsAlly && pos.Distance(obj.Position) <= range).OrderByDescending(obj => obj.Distance(pos)).ToList();
             foreach (var ally in allies)
             {
                 if (!ally.IsMe)
@@ -605,7 +644,7 @@ namespace yol0LeeSin
                         _Q2.Cast();
                     }
                 }
-                else if (_F.Slot != SpellSlot.Unknown && _F.IsReady())
+                else if (_F.Slot != SpellSlot.Unknown && _F.IsReady() && _W.IsReady())
                 {
                     if (Player.Distance(insecPos) < 425 && _F.Slot != SpellSlot.Unknown && _F.IsReady())
                     {
@@ -628,6 +667,23 @@ namespace yol0LeeSin
                 }
             }
         }
-        #endregion  
+        #endregion
+        #region Cast Checks
+        private static bool CanCastQ()
+        {
+            return _Q.IsReady();
+        }
+
+        private static bool CanCastW()
+        {
+            return _W.IsReady() && _W.Instance.Name == "BlindMonkWOne";
+        }
+
+        private static bool CanCastE()
+        {
+            return _E.IsReady() && _E.Instance.Name == "BlindMonkEOne";
+        }
+
+        #endregion
     }
 }
