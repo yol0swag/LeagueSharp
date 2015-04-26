@@ -27,7 +27,7 @@ namespace yol0LeeSin
         private static Orbwalking.Orbwalker _orbwalker;
 
         private static GameObject _ward;
-        private static Vector2 wardPosition;
+        //private static Vector2 wardPosition;
 
         private static int pCount;
         private static int pTimer;
@@ -105,6 +105,7 @@ namespace yol0LeeSin
             {
                 return (float)GetDamage(enemy);
             };
+			GameObject.OnCreate += OnCreateObject;
             Obj_AI_Base.OnProcessSpellCast += OnProcessSpellCast;
             Game.OnUpdate += OnUpdate;
             Drawing.OnDraw += OnDraw;
@@ -156,6 +157,14 @@ namespace yol0LeeSin
 
         }
 
+		private static void OnCreateObject(GameObject sender, EventArgs args)
+        {
+            if (Player.Distance(sender.Position) <= 700 && sender.IsAlly && (sender.Name == "VisionWard" || sender.Name == "SightWard"))
+            {
+                _ward = sender;
+            }
+        }
+		
         private static void OnUpdate(EventArgs args)
         {
             Utility.HpBarDamageIndicator.Enabled = _menu.SubMenu("Draw").Item("drawDamage").GetValue<bool>();
@@ -230,7 +239,7 @@ namespace yol0LeeSin
         #region Combo
         private static void Combo(Obj_AI_Hero target)
         {
-            _orbwalker.SetMovement(false);
+            //_orbwalker.SetMovement(false);
             if (target.HasBuff("BlindMonkQOne") && _Q.IsReady() && Player.Mana >= 30)
             {
                 
@@ -402,7 +411,7 @@ namespace yol0LeeSin
                     _Q2.Cast();
                 }
             }
-            _orbwalker.SetMovement(true);
+            //_orbwalker.SetMovement(true);
         }
         #endregion
         #region Escape
@@ -421,6 +430,11 @@ namespace yol0LeeSin
                     return ally;
             }
 
+			if (_ward != null && _ward.IsValid && !_ward.IsDead)
+            {
+                return _ward as Obj_AI_Base;
+            }
+			
             foreach (var ward in wards)
             {
                 return ward;
@@ -513,6 +527,11 @@ namespace yol0LeeSin
                     return ally;
             }
 
+			if (_ward != null && _ward.IsValid && !_ward.IsDead)
+            {
+                return _ward as Obj_AI_Base;
+            }
+			
             foreach (var minion in minions)
             {
                 return minion;
