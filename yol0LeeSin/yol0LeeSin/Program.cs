@@ -408,7 +408,7 @@ namespace yol0LeeSin
         #region Escape
         private static bool CanCastWard()
         {
-            return _W.Instance.Name == "BlindMonkWOne" && Environment.TickCount - 500 > lastWardCast && !Player.HasBuff("BlindMonkWOne");
+            return _W.Instance.Name == "BlindMonkWOne" && Environment.TickCount - 2000 > lastWardCast && !Player.HasBuff("BlindMonkWOne");
         }
         private static Obj_AI_Base GetEscapeObject(Vector3 pos, int range = 700)
         {
