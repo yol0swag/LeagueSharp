@@ -181,7 +181,7 @@ namespace yol0LeeSin
 
             if (_menu.SubMenu("Keys").Item("Insec").GetValue<KeyBind>().Active)
             {
-                if (Hud.SelectedUnit != null && _target.NetworkId == Hud.SelectedUnit.NetworkId)
+                if (Hud.SelectedUnit != null && _target != null && _target.NetworkId == Hud.SelectedUnit.NetworkId)
                     Insec(_target);
             }
 
