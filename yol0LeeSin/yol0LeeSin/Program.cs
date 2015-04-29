@@ -415,6 +415,21 @@ namespace yol0LeeSin
         }
         #endregion
         #region Escape
+		
+		private static InventorySlot GetWardSlot()
+        {
+            var wardNames = new[] { "Warding Totem (Trinket)", "Greater Totem (Trinket)", "Greater Stealth Totem (Trinket)", "Ruby Sightstone", "Sightstone", "Stealth Ward" };
+            foreach (var name in wardNames)
+            {
+                var id = Player.InventoryItems.FirstOrDefault(slot => slot.DisplayName == name);
+                if (id.IsValidSlot() && Player.Spellbook.CanUseSpell(id.SpellSlot) == SpellState.Ready)
+                {
+                    return id;
+                }
+            }
+            return null;
+        }
+		
         private static bool CanCastWard()
         {
             return _W.Instance.Name == "BlindMonkWOne" && Environment.TickCount - 2000 > lastWardCast && !Player.HasBuff("BlindMonkWOne");
@@ -430,7 +445,7 @@ namespace yol0LeeSin
                     return ally;
             }
 
-			if (_ward != null && _ward.IsValid && !_ward.IsDead)
+			if (_ward != null && _ward.IsValid && !_ward.IsDead && Player.Distance(_ward.Position) <= range)
             {
                 return _ward as Obj_AI_Base;
             }
@@ -462,8 +477,8 @@ namespace yol0LeeSin
             }
             else if (_W.IsReady() && !Player.HasBuff("BlindMonkWOne"))
             {
-                var wardSlot = Items.GetWardSlot();
-                if (wardSlot.IsValidSlot() && Player.Spellbook.CanUseSpell(wardSlot.SpellSlot) == SpellState.Ready && CanCastWard())
+                var wardSlot = GetWardSlot();
+                if (wardSlot.IsValidSlot() && (Player.Spellbook.CanUseSpell(wardSlot.SpellSlot) == SpellState.Ready || wardSlot.Stacks != 0) && CanCastWard())
                 {
                     lastWardCast = Environment.TickCount;
                     Player.Spellbook.CastSpell(wardSlot.SpellSlot, GetCorrectedMousePosition());
@@ -527,7 +542,7 @@ namespace yol0LeeSin
                     return ally;
             }
 
-			if (_ward != null && _ward.IsValid && !_ward.IsDead)
+			if (_ward != null && _ward.IsValid && !_ward.IsDead && Player.Distance(_ward) <= range)
             {
                 return _ward as Obj_AI_Base;
             }
@@ -575,7 +590,7 @@ namespace yol0LeeSin
                         }
                         else
                         {
-                            var slot = Items.GetWardSlot();
+                            var slot = GetWardSlot();
                             if (slot.IsValidSlot() && Player.Spellbook.CanUseSpell(slot.SpellSlot) == SpellState.Ready)
                             {
                                 Player.Spellbook.CastSpell(slot.SpellSlot, insecPos.To3D());
