@@ -37,10 +37,10 @@ namespace ToasterLoading
         private static int Stage;
         private static string statusText;
         private static string statusText2;
-        private static byte PacketHeader = 103; //TODO: update when OnSendPacket fixed
+        private static byte PacketHeader = 224;
         private static bool GameStarted;
 #if DISABLED
-		private const string Patch = "5.7";
+		private const string Patch = "5.8";
 #endif
         static void Main(string[] args)
         {
@@ -81,9 +81,12 @@ namespace ToasterLoading
                         case 1: statusText = "Packet caught. Press spacebar when you're ready to play"; textColor = Color.LimeGreen; break;
                         case 2: statusText = "Toaster disabled. Game will start in several seconds"; textColor = Color.Turquoise; break;
                     }
-                    Drawing.DrawText(10, 30, textColor, statusText + statusText2);
+                    if (Stage == 1)
+                        Drawing.DrawText(10, 30, textColor, statusText + statusText2);
+                    else
+                        Drawing.DrawText(10, 30, textColor, statusText);
 #else
-                    Drawing.DrawText(10, 10, Color.Tomato, "Toaster Loading is outdated for patch " + Patch);
+                    Drawing.DrawText(10, 10, Color.Tomato, "LeagueSharp's SendPacket function is currently broken on " + Patch);
 #endif
                     
                 }
@@ -106,6 +109,7 @@ namespace ToasterLoading
                 _escapeTimer.Elapsed += _escapeTimer_Elapsed;
                 _escapeTimer.Start();
                 Game.SendPacket(packet.ToArray(), PacketChannel.C2S, PacketProtocolFlags.Reliable);
+                Stage = 2;
                 packet.Close();
             }
             catch (Exception e)
