@@ -598,7 +598,7 @@ namespace yol0LeeSin
                             return;
                         }
                     }
-                    if (!Items.GetWardSlot().IsValidSlot())
+                    if (!GetWardSlot().IsValidSlot())
                         return;
 
                     if (!_Q.IsReady())
@@ -654,7 +654,7 @@ namespace yol0LeeSin
                         }
                         else
                         {
-                            var slot = Items.GetWardSlot();
+                            var slot = GetWardSlot();
                             if (slot.IsValidSlot() && Player.Spellbook.CanUseSpell(slot.SpellSlot) == SpellState.Ready)
                             {
                                 Player.Spellbook.CastSpell(slot.SpellSlot, insecPos.To3D());
@@ -662,7 +662,7 @@ namespace yol0LeeSin
                             return;
                         }
                     }
-                    if (!Items.GetWardSlot().IsValidSlot())
+                    if (!GetWardSlot().IsValidSlot())
                         return;
 
                     if (!_Q.IsReady())
