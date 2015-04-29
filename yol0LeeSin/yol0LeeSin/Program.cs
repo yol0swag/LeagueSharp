@@ -542,7 +542,7 @@ namespace yol0LeeSin
                     return ally;
             }
 
-			if (_ward != null && _ward.IsValid && !_ward.IsDead && Player.Distance(_ward) <= range)
+			if (_ward != null && _ward.IsValid && !_ward.IsDead && Player.Distance(_ward.Position) <= range)
             {
                 return _ward as Obj_AI_Base;
             }
