@@ -416,7 +416,7 @@ namespace yol0LeeSin
         #endregion
         #region Escape
 		
-		private static InventorySlot GetWardSlot()
+		/*private static InventorySlot GetWardSlot()
         {
             var wardNames = new[] { "Warding Totem (Trinket)", "Greater Totem (Trinket)", "Greater Stealth Totem (Trinket)", "Ruby Sightstone", "Sightstone", "Stealth Ward" };
             foreach (var name in wardNames)
@@ -428,7 +428,7 @@ namespace yol0LeeSin
                 }
             }
             return null;
-        }
+        }*/
 		
         private static bool CanCastWard()
         {
@@ -477,7 +477,7 @@ namespace yol0LeeSin
             }
             else if (_W.IsReady() && !Player.HasBuff("BlindMonkWOne"))
             {
-                var wardSlot = GetWardSlot();
+                var wardSlot = Items.GetWardSlot();
                 if (wardSlot.IsValidSlot() && (Player.Spellbook.CanUseSpell(wardSlot.SpellSlot) == SpellState.Ready || wardSlot.Stacks != 0) && CanCastWard())
                 {
                     lastWardCast = Environment.TickCount;
@@ -590,7 +590,7 @@ namespace yol0LeeSin
                         }
                         else
                         {
-                            var slot = GetWardSlot();
+                            var slot = Items.GetWardSlot();
                             if (slot.IsValidSlot() && Player.Spellbook.CanUseSpell(slot.SpellSlot) == SpellState.Ready)
                             {
                                 Player.Spellbook.CastSpell(slot.SpellSlot, insecPos.To3D());
@@ -598,7 +598,7 @@ namespace yol0LeeSin
                             return;
                         }
                     }
-                    if (!GetWardSlot().IsValidSlot())
+                    if (!Items.GetWardSlot().IsValidSlot())
                         return;
 
                     if (!_Q.IsReady())
@@ -654,7 +654,7 @@ namespace yol0LeeSin
                         }
                         else
                         {
-                            var slot = GetWardSlot();
+                            var slot = Items.GetWardSlot();
                             if (slot.IsValidSlot() && Player.Spellbook.CanUseSpell(slot.SpellSlot) == SpellState.Ready)
                             {
                                 Player.Spellbook.CastSpell(slot.SpellSlot, insecPos.To3D());
@@ -662,7 +662,7 @@ namespace yol0LeeSin
                             return;
                         }
                     }
-                    if (!GetWardSlot().IsValidSlot())
+                    if (!Items.GetWardSlot().IsValidSlot())
                         return;
 
                     if (!_Q.IsReady())
