@@ -13,24 +13,33 @@ namespace yol0LeeSin
     class Program
     {
         private static Obj_AI_Hero Player { get { return ObjectManager.Player; } }
-        private static Spell _Q = new Spell(SpellSlot.Q, 1100);
-        private static Spell _Q2 = new Spell(SpellSlot.Q, 1300);
-        private static Spell _W = new Spell(SpellSlot.W, 700);
-        private static Spell _E = new Spell(SpellSlot.E, 350);
-        private static Spell _E2 = new Spell(SpellSlot.E, 500);
-        private static Spell _R = new Spell(SpellSlot.R, 375);
-        private static Spell _F = new Spell(SpellSlot.Unknown, 425);
+        public static Spell _Q = new Spell(SpellSlot.Q, 1100);
+        public static Spell _Q2 = new Spell(SpellSlot.Q, 1300);
+        public static Spell _W = new Spell(SpellSlot.W, 700);
+        public static Spell _E = new Spell(SpellSlot.E, 350);
+        public static Spell _E2 = new Spell(SpellSlot.E, 500);
+        public static Spell _R = new Spell(SpellSlot.R, 375);
+        public static Spell _F = new Spell(SpellSlot.Unknown, 425);
+        public static Spell _I = new Spell(SpellSlot.Unknown, 600);
 
-        private static SpellSlot _I = SpellSlot.Unknown;
+        private static bool IsQOne { get { return _Q.Instance.Name == "BlindMonkQOne"; } }
+        private static bool IsQTwo { get { return _Q.Instance.Name == "blindmonkqtwo"; } }
+        private static bool IsWOne { get { return _W.Instance.Name == "BlindMonkWOne"; } }
+        private static bool IsWTwo { get { return _W.Instance.Name == "blindmonkwtwo"; } }
+        private static bool IsEOne { get { return _E.Instance.Name == "BlindMonkEOne"; } }
+        private static bool IsETwo { get { return _E.Instance.Name == "blindmonketwo"; } }
 
-        private static Menu _menu;
+        private static bool UseQ { get { return _menu.SubMenu("Combo").Item("useQ").GetValue<bool>(); } }
+        private static bool UseQ2 { get { return _menu.SubMenu("Combo").Item("useQ2").GetValue<bool>(); } }
+        private static bool UseE { get { return _menu.SubMenu("Combo").Item("useE").GetValue<bool>(); } }
+        private static bool UseE2 { get { return _menu.SubMenu("Combo").Item("useE2").GetValue<bool>(); } }
+        private static bool UseR { get { return _menu.SubMenu("Combo").Item("useR").GetValue<bool>(); } }
+        private static bool UseI { get { return Program._I.Slot != SpellSlot.Unknown && _menu.SubMenu("Combo").Item("useI").GetValue<bool>(); } }
+
+        public static Menu _menu;
         private static Orbwalking.Orbwalker _orbwalker;
 
         private static GameObject _ward;
-        //private static Vector2 wardPosition;
-
-        private static int pCount;
-        private static int pTimer;
 
         private static int qTimer;
         private static int wTimer;
@@ -40,7 +49,20 @@ namespace yol0LeeSin
 
         private static Obj_AI_Hero _target;
 
+        private static bool inKillCombo;
+        private static List<Spell> _killCombo;
+        private static int _comboStep;
+        private static Spell _lastSpell;
+        private static Spell _nextSpell;
+        private static int _lastSpellCast;
 
+        private static Items.Item _Tiamat = new Items.Item(3077, 185);
+        private static Items.Item _Hydra = new Items.Item(3074, 185);
+        private static Items.Item _Ghostblade = new Items.Item(3142);
+        private static Items.Item _Bilgewater = new Items.Item(3144, 450);
+        private static Items.Item _Botrk = new Items.Item(3153, 450);
+        private static Items.Item _Hextech = new Items.Item(3146, 700);
+        private static Items.Item _Randuins = new Items.Item(3143, 500);
 
         static void Main(string[] args)
         {
@@ -53,9 +75,9 @@ namespace yol0LeeSin
             _menu.AddSubMenu(new Menu("Target Selector", "Target Selector"));
             _menu.AddSubMenu(new Menu("Orbwalker", "Orbwalker"));
             _menu.AddSubMenu(new Menu("Keys", "Keys"));
-            //_menu.AddSubMenu(new Menu("Combo", "Combo"));
+            _menu.AddSubMenu(new Menu("Combo", "Combo"));
             _menu.AddSubMenu(new Menu("Insec", "Insec"));
-            //_menu.AddSubMenu(new Menu("Dodge", "Dodge"));
+            _menu.AddSubMenu(new Menu("Dodge", "Dodge"));
             _menu.AddSubMenu(new Menu("Drawing", "Draw"));
 
             TargetSelector.AddToMenu(_menu.SubMenu("Target Selector"));
@@ -65,15 +87,13 @@ namespace yol0LeeSin
             _menu.SubMenu("Keys").AddItem(new MenuItem("Escape", "Escape").SetValue(new KeyBind("A".ToArray()[0], KeyBindType.Press)));
             _menu.SubMenu("Keys").AddItem(new MenuItem("Wardjump", "Ward Jump").SetValue(new KeyBind("Z".ToArray()[0], KeyBindType.Press)));
 
-            //_menu.SubMenu("Combo").AddItem(new MenuItem("useQ", "Use Q").SetValue(true));
-            //_menu.SubMenu("Combo").AddItem(new MenuItem("useQ2", "Use Q2").SetValue(true));
-            //_menu.SubMenu("Combo").AddItem(new MenuItem("useW", "Use W").SetValue(false));
-            //_menu.SubMenu("Combo").AddItem(new MenuItem("useW2", "Use W2").SetValue(true));
-            //_menu.SubMenu("Combo").AddItem(new MenuItem("useE", "Use E").SetValue(true));
-            //_menu.SubMenu("Combo").AddItem(new MenuItem("useE2", "Use E2").SetValue(true));
-            //_menu.SubMenu("Combo").AddItem(new MenuItem("useR", "Use R").SetValue(true));
-            //_menu.SubMenu("Combo").AddItem(new MenuItem("useI", "Use Ignite").SetValue(true));
-            //_menu.SubMenu("Combo").AddItem(new MenuItem("useItems", "Use Items").SetValue(true));
+            _menu.SubMenu("Combo").AddItem(new MenuItem("useQ", "Use Q").SetValue(true));
+            _menu.SubMenu("Combo").AddItem(new MenuItem("useQ2", "Use Q2").SetValue(true));
+            _menu.SubMenu("Combo").AddItem(new MenuItem("useE", "Use E").SetValue(true));
+            _menu.SubMenu("Combo").AddItem(new MenuItem("useE2", "Use E2").SetValue(true));
+            _menu.SubMenu("Combo").AddItem(new MenuItem("useR", "Use R").SetValue(true));
+            _menu.SubMenu("Combo").AddItem(new MenuItem("useI", "Use Ignite").SetValue(true));
+            _menu.SubMenu("Combo").AddItem(new MenuItem("useItems", "Use Items").SetValue(true));
 
             _menu.SubMenu("Insec").AddItem(new MenuItem("method", "Insec Method").SetValue(new StringList(new[] { "Wardjump only", "Flash Only", "Wardjump + Flash" }, 2)));
             _menu.SubMenu("Insec").AddItem(new MenuItem("mode", "Insec Mode").SetValue(new StringList(new[] { "To Ally", "To Mouse", "To Turret" }, 0)));
@@ -85,14 +105,17 @@ namespace yol0LeeSin
 
             _menu.SubMenu("Draw").AddItem(new MenuItem("drawInsec", "Draw Insec").SetValue(true));
             _menu.SubMenu("Draw").AddItem(new MenuItem("drawDamage", "Draw Damage on Healthbar").SetValue(true));
+            _menu.SubMenu("Draw").AddItem(new MenuItem("drawCombo", "Draw Kill Combo").SetValue(true));
             _menu.SubMenu("Draw").AddItem(new MenuItem("drawTarget", "Draw Target").SetValue(true));
 
             _menu.AddToMainMenu();
 
+            SpellDodger.Initialize(_menu.SubMenu("Dodge"));
+
             if (Player.Spellbook.GetSpell(SpellSlot.Summoner1).Name == "summonerdot")
-                _I = SpellSlot.Summoner1;
+                _I.Slot = SpellSlot.Summoner1;
             else if (Player.Spellbook.GetSpell(SpellSlot.Summoner2).Name == "summonerdot")
-                _I = SpellSlot.Summoner2;
+                _I.Slot = SpellSlot.Summoner2;
 
             if (Player.Spellbook.GetSpell(SpellSlot.Summoner1).Name == "summonerflash")
                 _F.Slot = SpellSlot.Summoner1;
@@ -105,11 +128,14 @@ namespace yol0LeeSin
             {
                 return (float)GetDamage(enemy);
             };
-			GameObject.OnCreate += OnCreateObject;
+            GameObject.OnCreate += OnCreateObject;
             Obj_AI_Base.OnProcessSpellCast += OnProcessSpellCast;
+            Obj_AI_Base.OnProcessSpellCast += KillCombo_OnProcessSpellCast;
             Game.OnUpdate += OnUpdate;
             Drawing.OnDraw += OnDraw;
         }
+
+        
 
         #region Events
         private static void OnDraw(EventArgs args)
@@ -152,19 +178,37 @@ namespace yol0LeeSin
                 var wts2 = Drawing.WorldToScreen(endPos.To3D());
 
                 Drawing.DrawLine(wts1, wts2, 2, Color.Green);
+            }
 
+            if (_menu.SubMenu("Draw").Item("drawCombo").GetValue<bool>())
+            {
+                foreach (var enemy in HeroManager.Enemies.Where(hero => hero.IsVisible && !hero.IsDead))
+                {
+                    var pos = enemy.HPBarPosition;
+                    pos.Y += 35;
+                    pos.X += 5;
+                    var combo = ComboGenerator.GetKillCombo(enemy);
+                    if (combo != null)
+                    {
+                        Drawing.DrawText(pos.X, pos.Y, Color.Red, ComboGenerator.ComboString(combo));
+                    }
+                    else
+                    {
+                        Drawing.DrawText(pos.X, pos.Y, Color.Red, "Not Killable");
+                    }
+                }
             }
 
         }
 
-		private static void OnCreateObject(GameObject sender, EventArgs args)
+        private static void OnCreateObject(GameObject sender, EventArgs args)
         {
             if (Player.Distance(sender.Position) <= 700 && sender.IsAlly && (sender.Name == "VisionWard" || sender.Name == "SightWard"))
             {
                 _ward = sender;
             }
         }
-		
+
         private static void OnUpdate(EventArgs args)
         {
             Utility.HpBarDamageIndicator.Enabled = _menu.SubMenu("Draw").Item("drawDamage").GetValue<bool>();
@@ -196,11 +240,11 @@ namespace yol0LeeSin
             if (sender.IsMe)
             {
                 if (args.SData.Name == "BlindMonkQOne")
-                    qTimer = Environment.TickCount + 3000;
+                    qTimer = Environment.TickCount + 2700;
                 else if (args.SData.Name == "BlindMonkWOne")
-                    wTimer = Environment.TickCount + 3000;
+                    wTimer = Environment.TickCount + 2700;
                 else if (args.SData.Name == "BlindMonkEOne")
-                    eTimer = Environment.TickCount + 3000;
+                    eTimer = Environment.TickCount + 2700;
                 else if (args.SData.Name == "BlindMonkRKick")
                     Orbwalking.ResetAutoAttackTimer();
 
@@ -223,7 +267,7 @@ namespace yol0LeeSin
             var aDmg = Player.GetAutoAttackDamage(target);
             var iDmg = 0.0;
 
-            if (_I != SpellSlot.Unknown && Player.Spellbook.CanUseSpell(_I) == SpellState.Ready)
+            if (_I.Slot != SpellSlot.Unknown && _I.IsReady())
                 iDmg = Player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite);
 
             return qDmg + eDmg + rDmg + aDmg * 2 + iDmg;
@@ -237,199 +281,188 @@ namespace yol0LeeSin
         }
         #endregion
         #region Combo
+        private static void UseItems(Obj_AI_Hero target)
+        {
+            if (_Tiamat.IsReady() && target.IsValidTarget(_Tiamat.Range))
+            {
+                _Tiamat.Cast();
+            }
+            if (_Hydra.IsReady() && target.IsValidTarget(_Hydra.Range))
+            {
+                _Hydra.Cast();
+            }
+            if (_Bilgewater.IsReady() && target.IsValidTarget(_Bilgewater.Range))
+            {
+                _Bilgewater.Cast(target);
+            }
+            if (_Botrk.IsReady() && target.IsValidTarget(_Botrk.Range))
+            {
+                _Botrk.Cast(target);
+            }
+            if (_Hextech.IsReady() && target.IsValidTarget(_Hextech.Range))
+            {
+                _Hextech.Cast(target);
+            }
+            if (_Ghostblade.IsReady() && target.IsValidTarget(600))
+            {
+                _Ghostblade.Cast();
+            }
+            if (_Randuins.IsReady() && target.IsValidTarget(_Randuins.Range))
+            {
+                _Randuins.Cast();
+            }
+        }
+
+        private static void AutoSkills()
+        {
+            if (_menu.SubMenu("Combo").Item("useW2").GetValue<bool>() && wTimer < Environment.TickCount)
+            {
+                _W.Cast();
+            }
+            if (_menu.SubMenu("Combo").Item("useE2").GetValue<bool>() && eTimer < Environment.TickCount)
+            {
+                _E.Cast();
+            }
+
+        }
+
         private static void Combo(Obj_AI_Hero target)
         {
-            //_orbwalker.SetMovement(false);
-            if (target.HasBuff("BlindMonkQOne") && _Q.IsReady() && Player.Mana >= 30)
+            if (_menu.SubMenu("Combo").Item("useItems").GetValue<bool>())
+                UseItems(target);
+
+            if (!KillCombo(target))
             {
-                
-                var eDmg = Player.GetSpellDamage(target, SpellSlot.E);
-                var rDmg = Player.GetSpellDamage(target, SpellSlot.R);
-                var iDmg = _I != SpellSlot.Unknown ? Player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite) : 0.0;
-                var aDmg = Player.GetAutoAttackDamage(target);
-
-                if (target.IsValidTarget(_Q2.Range))
+                _killCombo = null;
+                _nextSpell = null;
+                _lastSpell = null;
+                if (_lastSpellCast + 300 <= Environment.TickCount)
                 {
-                    if (GetQ2Damage(target, 0) > target.Health)
+                    if (UseQ && _Q.IsReady() && IsQOne && target.IsValidTarget(_Q.Range))
                     {
-                        _Q2.Cast();
-                        return;
+                        _lastSpellCast = Environment.TickCount;
+                        _Q.Cast(target);
+                    }
+                    if (UseE && _E.IsReady() && IsEOne && target.IsValidTarget(_E.Range))
+                    {
+                        _lastSpellCast = Environment.TickCount;
+                        _E.Cast();
+                    }
+
+                    if (target.HasBuff("BlindMonkQOne") && UseQ2 && IsQTwo)
+                    {
+                        _Q2.CastOnUnit(target);
+                    }
+                    if (UseE2 && _E2.IsReady() && IsETwo && target.IsValidTarget(_E2.Range) && Player.Mana >= 50)
+                    {
+                        _E2.Cast();
                     }
                 }
+            }
+        }
 
-                if (_E.IsReady() && Player.Mana >= 80)
+        private static bool KillCombo(Obj_AI_Hero target)
+        {
+            var tmpCombo = ComboGenerator.GetKillCombo(target);
+            if (tmpCombo != null && _killCombo == null)
+            {
+                _killCombo = tmpCombo;
+                _comboStep = 0;
+                _lastSpell = null;
+                _nextSpell = _killCombo[_comboStep];
+                inKillCombo = true;
+                ComboGenerator.PrintCombo(_killCombo);
+                return true;
+            }
+            else if (tmpCombo == null && inKillCombo && _killCombo != null && _comboStep == _killCombo.Count)
+            {
+                _killCombo = null;
+                _comboStep = 0;
+                _lastSpell = null;
+                _nextSpell = null;
+                inKillCombo = false;
+                return false;
+            }
+            else if (GetDamage(target) < target.Health)
+            {
+                return false;
+            }
+            else if (_killCombo != null)
+            {
+                if (_lastSpellCast + 300 <= Environment.TickCount)
                 {
-                    if (target.Health <= eDmg + GetQ2Damage(target, eDmg) && target.IsValidTarget(_E.Range))
+                    if (_nextSpell == _Q)
                     {
-                        _E.Cast();
-                        _Q2.Cast();
-                        return;
+                        _lastSpellCast = Environment.TickCount;
+                        _Q.Cast(target);
                     }
-                    else if (target.Health <= eDmg + GetQ2Damage(target, eDmg) + iDmg && target.IsValidTarget(_E.Range))
+                    else if (_nextSpell == _Q2)
                     {
-                        Player.Spellbook.CastSpell(_I, target);
+                        _lastSpellCast = Environment.TickCount;
+                        _Q2.CastOnUnit(target);
+                    }
+                    else if (_nextSpell == _E)
+                    {
+                        _lastSpellCast = Environment.TickCount;
                         _E.Cast();
-                        _Q2.Cast();
-                        return;
+                    }
+                    else if (_nextSpell == _I)
+                    {
+                        _lastSpellCast = Environment.TickCount;
+                        _I.CastOnUnit(target);
+                    }
+                    else if (_nextSpell == _R)
+                    {
+                        _lastSpellCast = Environment.TickCount;
+                        _R.CastOnUnit(target);
                     }
                 }
+                return true;
+            }
+            else if (tmpCombo == null && _killCombo == null)
+            {
+                return false;
+            }
+            
+            return false;
+        }
 
-                if (_R.IsReady() && _E.IsReady() && Player.Mana >= 80)
-                {
-                    if (target.Health <= eDmg + rDmg + GetQ2Damage(target, eDmg + rDmg) && target.IsValidTarget(_E.Range))
-                    {
-                        _E.Cast();
-                        _R.CastOnUnit(target);
-                        _Q2.Cast();
-                        return;
-                    }
-                    else if (target.Health <= GetQ2Damage(target, rDmg) + rDmg && target.IsValidTarget(_Q2.Range))
-                    {
-                        _R.CastOnUnit(target);
-                        _Q2.Cast();
-                        return;
-                    }
-                    else if (target.Health <= GetQ2Damage(target, rDmg + eDmg) + rDmg + eDmg + iDmg && target.IsValidTarget(_E.Range))
-                    {
-                        Player.Spellbook.CastSpell(_I, target);
-                        _E.Cast();
-                        _R.CastOnUnit(target);
-                        _Q2.Cast();
-                        return;
-                    }
-                }
+        private static void KillCombo_OnProcessSpellCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
+        {
+            if (!sender.IsMe)
+                return;
 
-                if (_R.IsReady())
-                {
-                    if (target.Health <= rDmg && target.IsValidTarget(_R.Range))
-                    {
-                        _R.CastOnUnit(target);
-                        return;
-                    }
-                    else if (target.Health <= rDmg + GetQ2Damage(target, rDmg) && target.IsValidTarget(_R.Range))
-                    {
-                        _R.CastOnUnit(target);
-                        _Q2.Cast();
-                        return;
-                    }
-                    else if (target.Health <= rDmg + GetQ2Damage(target, rDmg) + iDmg && target.IsValidTarget(_R.Range))
-                    {
-                        Player.Spellbook.CastSpell(_I, target);
-                        _R.CastOnUnit(target);
-                        _Q2.Cast();
-                        return;
-                    }
-                }
+            if (!inKillCombo)
+                return;
+
+            switch (args.SData.Name)
+            {
+                case "BlindMonkQOne": _lastSpell = _Q; _lastSpellCast = Environment.TickCount; break;
+                case "blindmonkqtwo": _lastSpell = _Q2; _lastSpellCast = Environment.TickCount; break;
+                case "BlindMonkEOne": _lastSpell = _E; _lastSpellCast = Environment.TickCount; break;
+                case "BlindMonkRKick": _lastSpell = _R; _lastSpellCast = Environment.TickCount; break;
+                case "summonerdot": _lastSpell = _I; _lastSpellCast = Environment.TickCount; break;
+                default: return;
+            }
+
+
+            if (_killCombo != null && _killCombo.Count - 1 > _comboStep && _killCombo[_comboStep] == _lastSpell)
+            {
+                _nextSpell = _killCombo[++_comboStep];
             }
             else
             {
-                var qDmg = Player.GetSpellDamage(target, SpellSlot.Q);
-                var eDmg = Player.GetSpellDamage(target, SpellSlot.E);
-                var rDmg = Player.GetSpellDamage(target, SpellSlot.R);
-                var iDmg = Player.Spellbook.CanUseSpell(_I) == SpellState.Ready ? Player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite) : 0.0;
-                var aDmg = Player.GetAutoAttackDamage(target);
-
-                if (_E.IsReady())
-                {
-                    if (target.IsValidTarget(_E.Range))
-                    {
-                        if (target.Health <= eDmg)
-                        {
-                            _E.Cast();
-                            return;
-                        }
-                        else if (target.Health <= eDmg + iDmg)
-                        {
-                            Player.Spellbook.CastSpell(_I, target);
-                            _E.Cast();
-                            return;
-                        }
-                    }
-                }
-
-                if (_R.IsReady())
-                {
-                    if (target.IsValidTarget(_R.Range))
-                    {
-                        if (target.Health <= rDmg)
-                        {
-                            _R.CastOnUnit(target);
-                            return;
-                        }
-                        else if (target.Health <= rDmg + iDmg)
-                        {
-                            Player.Spellbook.CastSpell(_I, target);
-                            _R.CastOnUnit(target);
-                            return;
-                        }
-                    }
-                }
-
-                if (_E.IsReady() && _R.IsReady())
-                {
-                    if (target.IsValidTarget(_E.Range))
-                    {
-                        if (target.Health <= eDmg + rDmg)
-                        {
-                            _E.Cast();
-                            _R.CastOnUnit(target);
-                            return;
-                        }
-                        else if (target.Health <= eDmg + rDmg + iDmg)
-                        {
-                            _E.Cast();
-                            Player.Spellbook.CastSpell(_I, target);
-                            _R.CastOnUnit(target);
-                            return;
-                        }
-                    }
-
-                }
-
-                if (_Q.IsReady())
-                {
-                    if (target.IsValidTarget(_Q.Range))
-                    {
-                        _Q.Cast(target);
-                        return;
-                    }
-                }
+                inKillCombo = false;
+                _killCombo = null;
+                _comboStep = 0;
+                _nextSpell = null;
             }
-
-            if (_E.IsReady())
-            {
-                if (target.IsValidTarget(_E.Range))
-                {
-                    _E.Cast();
-                }
-            }
-
-            if (_Q2.IsReady())
-            {
-                if (target.IsValidTarget(_Q2.Range))
-                {
-                    _Q2.Cast();
-                }
-            }
-            //_orbwalker.SetMovement(true);
         }
+            
+        
         #endregion
         #region Escape
-		
-		/*private static InventorySlot GetWardSlot()
-        {
-            var wardNames = new[] { "Warding Totem (Trinket)", "Greater Totem (Trinket)", "Greater Stealth Totem (Trinket)", "Ruby Sightstone", "Sightstone", "Stealth Ward" };
-            foreach (var name in wardNames)
-            {
-                var id = Player.InventoryItems.FirstOrDefault(slot => slot.DisplayName == name);
-                if (id.IsValidSlot() && Player.Spellbook.CanUseSpell(id.SpellSlot) == SpellState.Ready)
-                {
-                    return id;
-                }
-            }
-            return null;
-        }*/
-		
+
         private static bool CanCastWard()
         {
             return _W.Instance.Name == "BlindMonkWOne" && Environment.TickCount - 2000 > lastWardCast && !Player.HasBuff("BlindMonkWOne");
@@ -445,11 +478,11 @@ namespace yol0LeeSin
                     return ally;
             }
 
-			if (_ward != null && _ward.IsValid && !_ward.IsDead && Player.Distance(_ward.Position) <= range)
+            if (_ward != null && _ward.IsValid && !_ward.IsDead && Player.Distance(_ward.Position) <= range)
             {
                 return _ward as Obj_AI_Base;
             }
-			
+
             foreach (var ward in wards)
             {
                 return ward;
@@ -542,11 +575,11 @@ namespace yol0LeeSin
                     return ally;
             }
 
-			if (_ward != null && _ward.IsValid && !_ward.IsDead && Player.Distance(_ward.Position) <= range)
+            if (_ward != null && _ward.IsValid && !_ward.IsDead && Player.Distance(_ward.Position) <= range)
             {
                 return _ward as Obj_AI_Base;
             }
-			
+
             foreach (var minion in minions)
             {
                 return minion;
@@ -611,7 +644,7 @@ namespace yol0LeeSin
 
                     if (_target.HasBuff("BlindMonkQOne") && Player.Mana >= 80 && target.Distance(insecPos) <= 600)
                     {
-                        _Q2.Cast();
+                        _Q2.CastOnUnit(target);
                     }
                 }
             }
@@ -635,7 +668,7 @@ namespace yol0LeeSin
 
                 if (_target.HasBuff("BlindMonkQOne") && Player.Mana >= 80 && target.Distance(insecPos) <= 325)
                 {
-                    _Q2.Cast();
+                    _Q2.CastOnUnit(target);
                 }
             }
             else
@@ -675,7 +708,7 @@ namespace yol0LeeSin
 
                     if (_target.HasBuff("BlindMonkQOne") && Player.Mana >= 80 && target.Distance(insecPos) <= 600)
                     {
-                        _Q2.Cast();
+                        _Q2.CastOnUnit(target);
                     }
                 }
                 else if (_F.Slot != SpellSlot.Unknown && _F.IsReady() && _W.IsReady())
@@ -696,7 +729,7 @@ namespace yol0LeeSin
 
                     if (_target.HasBuff("BlindMonkQOne") && Player.Mana >= 80 && target.Distance(insecPos) <= 325)
                     {
-                        _Q2.Cast();
+                        _Q2.CastOnUnit(target);
                     }
                 }
             }
