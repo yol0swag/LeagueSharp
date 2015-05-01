@@ -334,6 +334,11 @@ namespace yol0Thresh
                 {
                     qTick = Environment.TickCount + 500;
                 }
+
+                if (args.SData.Name == "ThreshE")
+                {
+                    xSLxOrbwalker.ResetAutoAttackTimer();
+                }
             }
         }
 
