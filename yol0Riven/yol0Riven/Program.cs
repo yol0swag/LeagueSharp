@@ -50,7 +50,7 @@ namespace yol0Riven
             _menu.AddSubMenu(new Menu("Combo", "Combo"));
             _menu.AddSubMenu(new Menu("Killsteal", "KS"));
             _menu.AddSubMenu(new Menu("Misc", "Misc"));
-            _menu.AddSubMenu(new Menu("Drawing", "Drawing"));
+            _menu.AddSubMenu(new Menu("Drawing", "Draw"));
 
             _orbwalker = new Orbwalking.Orbwalker(_menu.SubMenu("Orbwalker"));
             TargetSelector.AddToMenu(_menu.SubMenu("Target Selector"));
