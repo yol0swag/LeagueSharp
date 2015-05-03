@@ -71,6 +71,9 @@ namespace yol0LeeSin
 
         private static void OnGameLoad(EventArgs args)
         {
+			if (Player.ChampionName != "LeeSin")
+				return;
+			
             _menu = new Menu("yol0 LeeSin", "yol0LeeSin", true);
             _menu.AddSubMenu(new Menu("Target Selector", "Target Selector"));
             _menu.AddSubMenu(new Menu("Orbwalker", "Orbwalker"));
