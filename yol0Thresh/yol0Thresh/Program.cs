@@ -6,11 +6,12 @@ using LeagueSharp.Common;
 using SharpDX;
 using Color = System.Drawing.Color;
 
+// ReSharper disable InconsistentNaming
+
 namespace yol0Thresh
 {
     internal class Program
     {
-        private const string Revision = "1.0.0.3";
         private static readonly Obj_AI_Hero Player = ObjectManager.Player;
 
         private static readonly Spell _Q = new Spell(SpellSlot.Q, 1075);
@@ -26,14 +27,14 @@ namespace yol0Thresh
 
 
         private static List<Vector3> escapeSpots = new List<Vector3>();
-        private static List<GameObject> soulList = new List<GameObject>();
+        private static readonly List<GameObject> soulList = new List<GameObject>();
 
         private static Obj_AI_Hero currentTarget
         {
             get
             {
                 if (Hud.SelectedUnit != null && Hud.SelectedUnit is Obj_AI_Hero && Hud.SelectedUnit.Team != Player.Team)
-                    return (Obj_AI_Hero)Hud.SelectedUnit;
+                    return (Obj_AI_Hero) Hud.SelectedUnit;
                 if (TargetSelector.GetSelectedTarget() != null)
                     return TargetSelector.GetSelectedTarget();
                 return TargetSelector.GetTarget(qRange + 175, TargetSelector.DamageType.Physical);
@@ -76,7 +77,7 @@ namespace yol0Thresh
             Config.AddSubMenu(new Menu("Harass Settings", "Harass"));
             Config.SubMenu("Harass").AddItem(new MenuItem("useQ1", "Use Q1").SetValue(true));
             Config.SubMenu("Harass").AddItem(new MenuItem("useE", "Use Flay").SetValue(true));
-            Config.SubMenu("Harass").AddItem(new MenuItem("manaPercent", "Mana %").SetValue(new Slider(40, 1, 100)));
+            Config.SubMenu("Harass").AddItem(new MenuItem("manaPercent", "Mana %").SetValue(new Slider(40, 1)));
 
             Config.AddSubMenu(new Menu("Flay Settings", "Flay"));
             Config.SubMenu("Flay")
@@ -84,13 +85,13 @@ namespace yol0Thresh
             Config.SubMenu("Flay")
                 .AddItem(new MenuItem("pushEnemy", "Push Enemy").SetValue(new KeyBind(88, KeyBindType.Press)));
             Config.SubMenu("Flay").AddSubMenu(new Menu("Per-Enemy Settings", "ActionToTake"));
-            foreach (Obj_AI_Hero enemy in ObjectManager.Get<Obj_AI_Hero>().Where(unit => unit.Team != Player.Team))
+            foreach (var enemy in ObjectManager.Get<Obj_AI_Hero>().Where(unit => unit.Team != Player.Team))
             {
                 Config.SubMenu("Flay")
                     .SubMenu("ActionToTake")
                     .AddItem(
                         new MenuItem(enemy.ChampionName, enemy.ChampionName).SetValue(
-                            new StringList(new[] { "Pull", "Push" })));
+                            new StringList(new[] {"Pull", "Push"})));
             }
 
             Config.AddSubMenu(new Menu("Lantern Settings", "Lantern"));
@@ -108,9 +109,7 @@ namespace yol0Thresh
             Config.SubMenu("Misc")
                 .AddItem(
                     new MenuItem("qHitChance", "Q HitChance").SetValue(
-                        new StringList(new[] { "Very High", "High", "Medium", "Low" }, 1)));
-            Config.SubMenu("Misc").AddItem(new MenuItem("dashes", "Flay Dash Gapclosers").SetValue(true));
-            Config.SubMenu("Misc").AddItem(new MenuItem("packetCasting", "Use Packet Casting").SetValue(false));
+                        new StringList(new[] {"Low", "Medium", "High", "Very High"}, 2)));
 
             Config.SubMenu("Misc").AddSubMenu(new Menu("Gapclosers", "Gapclosers"));
             if (ObjectManager.Get<Obj_AI_Hero>().Any(unit => unit.Team != Player.Team && unit.ChampionName == "Rengar"))
@@ -119,44 +118,45 @@ namespace yol0Thresh
                     .SubMenu("Gapclosers")
                     .AddItem(new MenuItem("rengarleap", "Rengar - Unseen Predator").SetValue(true));
             }
-            foreach (Gapcloser spell in AntiGapcloser.Spells)
+            foreach (var spell in from spell in AntiGapcloser.Spells
+                from enemy in
+                    ObjectManager.Get<Obj_AI_Hero>()
+                        .Where(unit => unit.Team != Player.Team)
+                        .Where(enemy => spell.ChampionName == enemy.ChampionName)
+                select spell)
             {
-                foreach (Obj_AI_Hero enemy in ObjectManager.Get<Obj_AI_Hero>().Where(unit => unit.Team != Player.Team))
-                {
-                    if (spell.ChampionName == enemy.ChampionName)
-                    {
-                        Config.SubMenu("Misc")
-                            .SubMenu("Gapclosers")
-                            .AddItem(
-                                new MenuItem(spell.SpellName, spell.ChampionName + " - " + spell.SpellName).SetValue(
-                                    true));
-                    }
-                }
+                Config.SubMenu("Misc")
+                    .SubMenu("Gapclosers")
+                    .AddItem(
+                        new MenuItem(spell.SpellName, spell.ChampionName + " - " + spell.SpellName).SetValue(
+                            true));
             }
 
             Config.SubMenu("Misc").AddSubMenu(new Menu("Interruptble Spells", "InterruptSpells"));
-            foreach (InterruptableSpell spell in Interrupter.Spells)
+            foreach (var spell in Interrupter.Spells)
             {
-                foreach (Obj_AI_Hero enemy in ObjectManager.Get<Obj_AI_Hero>().Where(unit => unit.Team != Player.Team))
+                var spell1 = spell;
+                foreach (
+                    var enemy in
+                        ObjectManager.Get<Obj_AI_Hero>()
+                            .Where(unit => unit.Team != Player.Team)
+                            .Where(enemy => spell1.ChampionName == enemy.ChampionName))
                 {
-                    if (spell.ChampionName == enemy.ChampionName)
-                    {
-                        Config.SubMenu("Misc")
-                            .SubMenu("InterruptSpells")
-                            .AddSubMenu(new Menu(enemy.ChampionName + " - " + spell.SpellName, spell.SpellName));
-                        Config.SubMenu("Misc")
-                            .SubMenu("InterruptSpells")
-                            .SubMenu(spell.SpellName)
-                            .AddItem(new MenuItem("enabled", "Enabled").SetValue(true));
-                        Config.SubMenu("Misc")
-                            .SubMenu("InterruptSpells")
-                            .SubMenu(spell.SpellName)
-                            .AddItem(new MenuItem("useE", "Interrupt with Flay").SetValue(true));
-                        Config.SubMenu("Misc")
-                            .SubMenu("InterruptSpells")
-                            .SubMenu(spell.SpellName)
-                            .AddItem(new MenuItem("useQ", "Interrupt with Hook").SetValue(true));
-                    }
+                    Config.SubMenu("Misc")
+                        .SubMenu("InterruptSpells")
+                        .AddSubMenu(new Menu(enemy.ChampionName + " - " + spell.SpellName, spell.SpellName));
+                    Config.SubMenu("Misc")
+                        .SubMenu("InterruptSpells")
+                        .SubMenu(spell.SpellName)
+                        .AddItem(new MenuItem("enabled", "Enabled").SetValue(true));
+                    Config.SubMenu("Misc")
+                        .SubMenu("InterruptSpells")
+                        .SubMenu(spell.SpellName)
+                        .AddItem(new MenuItem("useE", "Interrupt with Flay").SetValue(true));
+                    Config.SubMenu("Misc")
+                        .SubMenu("InterruptSpells")
+                        .SubMenu(spell.SpellName)
+                        .AddItem(new MenuItem("useQ", "Interrupt with Hook").SetValue(true));
                 }
             }
 
@@ -186,9 +186,8 @@ namespace yol0Thresh
             GameObject.OnCreate += OnCreateObj;
             AntiGapcloser.OnEnemyGapcloser += OnEnemyGapCloser;
             Interrupter.OnPossibleToInterrupt += OnPossibleToInterrupt;
-
-            Game.PrintChat("<font color=\"#FF0F0\">yol0 Thresh v" + Revision + " loaded!</font>");
         }
+
 
         public static void OnGameUpdate(EventArgs args)
         {
@@ -198,32 +197,6 @@ namespace yol0Thresh
             UpdateSouls();
             UpdateBuffs();
 
-            /*if (Config.SubMenu("Misc").Item("dashes").GetValue<bool>())
-            {
-                foreach (Obj_AI_Hero enemy in ObjectManager.Get<Obj_AI_Hero>().Where(unit => unit.Team != Player.Team))
-                {
-                    var pIn = new PredictionInput
-                    {
-                        Unit = enemy,
-                        Delay = 300,
-                        Aoe = false,
-                        Collision = false,
-                        Radius = 200,
-                        Range = _E.Range,
-                        Speed = 2000,
-                        Type = SkillshotType.SkillshotLine,
-                        RangeCheckFrom = Player.ServerPosition,
-                    };
-                    PredictionOutput pOut = Prediction.GetPrediction(pIn);
-                    float pX = Player.Position.X + (Player.Position.X - pOut.CastPosition.X);
-                    float pY = Player.Position.Y + (Player.Position.Y - pOut.CastPosition.Y);
-                    if (pOut.Hitchance == HitChance.Dashing && Player.Distance(pOut.CastPosition) < 125 && _E.IsReady())
-                    {
-                        _E.Cast(new Vector2(pX, pY), PacketCasting());
-                    }
-                }
-            }*/
-
             if (xSLxOrbwalker.CurrentMode == xSLxOrbwalker.Mode.Combo)
                 Combo();
 
@@ -232,14 +205,14 @@ namespace yol0Thresh
 
             if (Config.SubMenu("Flay").Item("pullEnemy").GetValue<KeyBind>().Active)
             {
-                Obj_AI_Hero target = TargetSelector.GetTarget(_E.Range, TargetSelector.DamageType.Physical);
+                var target = TargetSelector.GetTarget(_E.Range, TargetSelector.DamageType.Physical);
                 if (target != null)
                     PullFlay(target);
             }
 
             if (Config.SubMenu("Flay").Item("pushEnemy").GetValue<KeyBind>().Active)
             {
-                Obj_AI_Hero target = TargetSelector.GetTarget(_E.Range, TargetSelector.DamageType.Physical);
+                var target = TargetSelector.GetTarget(_E.Range, TargetSelector.DamageType.Physical);
                 if (target != null)
                     PushFlay(target);
             }
@@ -249,34 +222,34 @@ namespace yol0Thresh
         {
             if (Config.SubMenu("Draw").Item("drawQMax").GetValue<Circle>().Active && !Player.IsDead)
             {
-                Utility.DrawCircle(Player.Position, _Q.Range,
+                Render.Circle.DrawCircle(Player.Position, _Q.Range,
                     Config.SubMenu("Draw").Item("drawQMax").GetValue<Circle>().Color);
             }
 
             if (Config.SubMenu("Draw").Item("drawQEffective").GetValue<Circle>().Active && !Player.IsDead)
             {
-                Utility.DrawCircle(Player.Position, qRange,
+                Render.Circle.DrawCircle(Player.Position, qRange,
                     Config.SubMenu("Draw").Item("drawQEffective").GetValue<Circle>().Color);
             }
 
             if (Config.SubMenu("Draw").Item("drawW").GetValue<Circle>().Active && !Player.IsDead)
             {
-                Utility.DrawCircle(Player.Position, _W.Range,
+                Render.Circle.DrawCircle(Player.Position, _W.Range,
                     Config.SubMenu("Draw").Item("drawW").GetValue<Circle>().Color);
             }
 
             if (Config.SubMenu("Draw").Item("drawE").GetValue<Circle>().Active && !Player.IsDead)
             {
-                Utility.DrawCircle(Player.Position, _E.Range,
+                Render.Circle.DrawCircle(Player.Position, _E.Range,
                     Config.SubMenu("Draw").Item("drawE").GetValue<Circle>().Color);
             }
 
             if (Config.SubMenu("Draw").Item("drawQCol").GetValue<bool>() && !Player.IsDead)
             {
-                if (Player.Distance(currentTarget) < qRange + 200)
+                if (currentTarget != null && Player.Distance(currentTarget) < qRange + 200)
                 {
-                    Vector2 playerPos = Drawing.WorldToScreen(Player.Position);
-                    Vector2 targetPos = Drawing.WorldToScreen(currentTarget.Position);
+                    var playerPos = Drawing.WorldToScreen(Player.Position);
+                    var targetPos = Drawing.WorldToScreen(currentTarget.Position);
                     Drawing.DrawLine(playerPos, targetPos, 4,
                         _Q.GetPrediction(currentTarget, overrideRange: qRange).Hitchance < GetSelectedHitChance()
                             ? Color.Red
@@ -284,24 +257,26 @@ namespace yol0Thresh
                 }
             }
 
-            if (Config.SubMenu("Draw").Item("drawTargetC").GetValue<bool>() && currentTarget.IsVisible &&
-                !currentTarget.IsDead)
+            if (currentTarget != null &&
+                (Config.SubMenu("Draw").Item("drawTargetC").GetValue<bool>() && currentTarget.IsVisible &&
+                 !currentTarget.IsDead))
             {
-                Utility.DrawCircle(currentTarget.Position, currentTarget.BoundingRadius + 10, Color.Red);
-                Utility.DrawCircle(currentTarget.Position, currentTarget.BoundingRadius + 25, Color.Red);
-                Utility.DrawCircle(currentTarget.Position, currentTarget.BoundingRadius + 45, Color.Red);
+                Render.Circle.DrawCircle(currentTarget.Position, currentTarget.BoundingRadius + 10, Color.Red);
+                Render.Circle.DrawCircle(currentTarget.Position, currentTarget.BoundingRadius + 25, Color.Red);
+                Render.Circle.DrawCircle(currentTarget.Position, currentTarget.BoundingRadius + 45, Color.Red);
             }
 
-            if (Config.SubMenu("Draw").Item("drawTargetT").GetValue<bool>() && !currentTarget.IsDead)
+            if (currentTarget != null &&
+                (Config.SubMenu("Draw").Item("drawTargetT").GetValue<bool>() && !currentTarget.IsDead))
             {
                 Drawing.DrawText(100, 150, Color.Red, "Current Target: " + currentTarget.ChampionName);
             }
 
             if (Config.SubMenu("Draw").Item("drawSouls").GetValue<Circle>().Active && !Player.IsDead)
             {
-                foreach (GameObject soul in soulList.Where(s => s.IsValid))
+                foreach (var soul in soulList.Where(s => s.IsValid))
                 {
-                    Utility.DrawCircle(soul.Position, 50,
+                    Render.Circle.DrawCircle(soul.Position, 50,
                         Config.SubMenu("Draw").Item("drawSouls").GetValue<Circle>().Color);
                 }
             }
@@ -309,18 +284,16 @@ namespace yol0Thresh
 
         public static void OnAnimation(GameObject unit, GameObjectPlayAnimationEventArgs args)
         {
-            if (unit is Obj_AI_Hero)
+            var hero = unit as Obj_AI_Hero;
+            if (hero != null)
             {
-                var hero = (Obj_AI_Hero)unit;
-                if (hero.Team != Player.Team)
+                if (hero.Team == Player.Team) return;
+                if (hero.ChampionName == "Rengar" && args.Animation == "Spell5" && Player.Distance(hero) <= 725)
                 {
-                    if (hero.ChampionName == "Rengar" && args.Animation == "Spell5" && Player.Distance(hero) <= 725)
+                    if (_E.IsReady() &&
+                        Config.SubMenu("Misc").SubMenu("Gapclosers").Item("rengarleap").GetValue<bool>())
                     {
-                        if (_E.IsReady() &&
-                            Config.SubMenu("Misc").SubMenu("Gapclosers").Item("rengarleap").GetValue<bool>())
-                        {
-                            _E.Cast(unit.Position, PacketCasting());
-                        }
+                        _E.Cast(unit.Position);
                     }
                 }
             }
@@ -328,23 +301,21 @@ namespace yol0Thresh
 
         public static void OnProcessSpell(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
         {
-            if (sender.IsMe)
+            if (!sender.IsMe) return;
+            if (args.SData.Name == "ThreshQ")
             {
-                if (args.SData.Name == "ThreshQ")
-                {
-                    qTick = Environment.TickCount + 500;
-                }
+                qTick = Environment.TickCount + 500;
+            }
 
-                if (args.SData.Name == "ThreshE")
-                {
-                    xSLxOrbwalker.ResetAutoAttackTimer();
-                }
+            if (args.SData.Name == "ThreshE")
+            {
+                xSLxOrbwalker.ResetAutoAttackTimer();
             }
         }
 
         public static void OnCreateObj(GameObject obj, EventArgs args)
         {
-            if (obj.Name.Contains("ChaosMinion") && obj.Team == Player.Team)
+            if (obj.Name.Contains("Thresh_Base_soul"))
             {
                 soulList.Add(obj);
             }
@@ -367,7 +338,7 @@ namespace yol0Thresh
                         .GetValue<bool>() && _E.IsReady() &&
                     Player.Distance(unit) < _E.Range)
                 {
-                    if (ShouldPull((Obj_AI_Hero)unit))
+                    if (ShouldPull((Obj_AI_Hero) unit))
                         PullFlay(unit);
                     else
                         PushFlay(unit);
@@ -380,7 +351,7 @@ namespace yol0Thresh
                         .GetValue<bool>() && _Q.IsReady() &&
                     !_Q.GetPrediction(unit).CollisionObjects.Any())
                 {
-                    _Q.Cast(unit, PacketCasting());
+                    _Q.Cast(unit);
                 }
             }
         }
@@ -391,10 +362,20 @@ namespace yol0Thresh
                 Config.SubMenu("Misc").SubMenu("Gapclosers").Item(gapcloser.SpellName.ToLower()).GetValue<bool>() &&
                 Player.Distance(gapcloser.Sender) < _E.Range + 100)
             {
-                if (Player.Distance(gapcloser.Start) < Player.Distance(gapcloser.End))
-                    PullFlay(gapcloser.Sender);
+                if (gapcloser.SpellName == "LeonaZenithBlade")
+                {
+                    if (Player.Distance(gapcloser.Start) < Player.Distance(gapcloser.End))
+                        PullFlay(gapcloser.Sender);
+                    else
+                        Utility.DelayAction.Add(75, delegate { PushFlay(gapcloser.Sender); });
+                }
                 else
-                    PushFlay(gapcloser.Sender);
+                {
+                    if (Player.Distance(gapcloser.Start) < Player.Distance(gapcloser.End))
+                        PullFlay(gapcloser.Sender);
+                    else
+                        PushFlay(gapcloser.Sender);
+                }
             }
         }
 
@@ -402,14 +383,15 @@ namespace yol0Thresh
         {
             if (hookedUnit == null)
             {
-                foreach (Obj_AI_Base obj in ObjectManager.Get<Obj_AI_Base>().Where(unit => unit.Team != Player.Team))
+                foreach (
+                    var obj in
+                        ObjectManager.Get<Obj_AI_Base>()
+                            .Where(unit => unit.Team != Player.Team)
+                            .Where(obj => obj.HasBuff("threshqfakeknockup")))
                 {
-                    if (obj.HasBuff("threshqfakeknockup"))
-                    {
-                        hookedUnit = obj;
-                        hookTick = Environment.TickCount + 1500;
-                        return;
-                    }
+                    hookedUnit = obj;
+                    hookTick = Environment.TickCount + 1500;
+                    return;
                 }
             }
             hookTick = 0;
@@ -418,7 +400,8 @@ namespace yol0Thresh
 
         private static void UpdateSouls()
         {
-            foreach (GameObject soul in soulList.Where(soul => !soul.IsValid))
+            var remove = soulList.Where(soul => !soul.IsValid).ToList();
+            foreach (var soul in remove)
             {
                 soulList.Remove(soul);
             }
@@ -455,7 +438,7 @@ namespace yol0Thresh
             if (Config.SubMenu("KS").Item("ksE").GetValue<bool>())
             {
                 foreach (
-                    Obj_AI_Hero enemy in
+                    var enemy in
                         from enemy in
                             ObjectManager.Get<Obj_AI_Hero>().Where(unit => unit.Team != Player.Team && !unit.IsDead)
                         let eDmg = Player.GetSpellDamage(enemy, SpellSlot.E)
@@ -470,7 +453,7 @@ namespace yol0Thresh
             if (Config.SubMenu("KS").Item("ksQ").GetValue<bool>())
             {
                 foreach (
-                    Obj_AI_Hero enemy in
+                    var enemy in
                         from enemy in
                             ObjectManager.Get<Obj_AI_Hero>().Where(unit => unit.Team != Player.Team && !unit.IsDead)
                         let qDmg = Player.GetSpellDamage(enemy, SpellSlot.Q)
@@ -484,22 +467,17 @@ namespace yol0Thresh
             }
         }
 
-        private static bool PacketCasting()
-        {
-            return Config.SubMenu("Misc").Item("packetCasting").GetValue<bool>();
-        }
-
         private static HitChance GetSelectedHitChance()
         {
             switch (Config.SubMenu("Misc").Item("qHitChance").GetValue<StringList>().SelectedIndex)
             {
-                case 0:
-                    return HitChance.VeryHigh;
-                case 1:
-                    return HitChance.High;
-                case 2:
-                    return HitChance.Medium;
                 case 3:
+                    return HitChance.VeryHigh;
+                case 2:
+                    return HitChance.High;
+                case 1:
+                    return HitChance.Medium;
+                case 0:
                     return HitChance.Low;
             }
             return HitChance.Medium;
@@ -512,7 +490,7 @@ namespace yol0Thresh
                     .Count(unit => unit.Team != Player.Team && Player.Distance(unit) <= _R.Range) >=
                 Config.SubMenu("Box").Item("minEnemies").GetValue<Slider>().Value)
             {
-                _R.Cast(PacketCasting());
+                _R.Cast();
             }
         }
 
@@ -529,50 +507,47 @@ namespace yol0Thresh
                      Environment.TickCount >= hookTick - 500 && IsSecondQ() &&
                      ObjectManager.Get<Obj_AI_Hero>().FirstOrDefault(unit => unit.HasBuff("ThreshQ")) != null)
             {
-                _Q.Cast(PacketCasting());
+                _Q.Cast();
             }
             else if (Config.SubMenu("Combo").Item("useQ2").GetValue<bool>() &&
                      Config.SubMenu("Combo").Item("useE").GetValue<bool>() && _Q.IsReady() &&
-                     _E.IsReady() && ObjectManager.Get<Obj_AI_Minion>().FirstOrDefault(unit => unit.HasBuff("ThreshQ") && unit.Distance(currentTarget) <= _E.Range) != null && IsSecondQ())
+                     _E.IsReady() &&
+                     ObjectManager.Get<Obj_AI_Minion>()
+                         .FirstOrDefault(unit => unit.HasBuff("ThreshQ") && unit.Distance(currentTarget) <= _E.Range) !=
+                     null && IsSecondQ())
             {
-                _Q.Cast(PacketCasting());
+                _Q.Cast();
             }
 
             if (Config.SubMenu("Combo").Item("useQ1").GetValue<bool>() && _Q.IsReady() && IsFirstQ() &&
                 !IsImmune(currentTarget))
             {
-                _Q.CastIfHitchanceEquals(currentTarget, GetSelectedHitChance(), PacketCasting());
-                /*if (_Q.GetPrediction(currentTarget, false, qRange).Hitchance >= GetSelectedHitChance())
-                {
-                    if (currentTarget.HasBuffOfType(BuffType.Slow))
-                        _Q.Cast(currentTarget.ServerPosition, PacketCasting());
-                    else
-                        _Q.Cast(currentTarget, PacketCasting());
-                }*/
+                _Q.CastIfHitchanceEquals(currentTarget, GetSelectedHitChance());
             }
 
-            if (Config.SubMenu("Lantern").Item("useW").GetValue<bool>() && _W.IsReady() && ObjectManager.Get<Obj_AI_Hero>().FirstOrDefault(unit => unit.HasBuff("ThreshQ")) != null)
+            if (Config.SubMenu("Lantern").Item("useW").GetValue<bool>() && _W.IsReady() &&
+                ObjectManager.Get<Obj_AI_Hero>().FirstOrDefault(unit => unit.HasBuff("ThreshQ")) != null)
             {
-                Obj_AI_Hero nearAlly = GetNearAlly();
+                var nearAlly = GetNearAlly();
                 if (nearAlly != null)
                 {
-                    _W.Cast(nearAlly, PacketCasting());
+                    _W.Cast(nearAlly);
                 }
             }
         }
 
         private static void Harass()
         {
-            float percentManaAfterQ = 100 * ((Player.Mana - _Q.Instance.ManaCost) / Player.MaxMana);
-            float percentManaAfterE = 100 * ((Player.Mana - _E.Instance.ManaCost) / Player.MaxMana);
-            int minPercentMana = Config.SubMenu("Harass").Item("manaPercent").GetValue<Slider>().Value;
+            var percentManaAfterQ = 100*((Player.Mana - _Q.Instance.ManaCost)/Player.MaxMana);
+            var percentManaAfterE = 100*((Player.Mana - _E.Instance.ManaCost)/Player.MaxMana);
+            var minPercentMana = Config.SubMenu("Harass").Item("manaPercent").GetValue<Slider>().Value;
 
             if (Config.SubMenu("Harass").Item("useQ1").GetValue<bool>() && _Q.IsReady() && IsFirstQ() &&
                 !IsImmune(currentTarget) && percentManaAfterQ >= minPercentMana)
             {
                 if (_Q.GetPrediction(currentTarget, false, qRange).Hitchance >= GetSelectedHitChance())
                 {
-                    _Q.Cast(currentTarget, PacketCasting());
+                    _Q.Cast(currentTarget);
                 }
             }
             else if (Config.SubMenu("Harass").Item("useE").GetValue<bool>() && !IsImmune(currentTarget) && _E.IsReady() &&
@@ -586,16 +561,16 @@ namespace yol0Thresh
         {
             if (Config.SubMenu("Lantern").Item("useWCC").GetValue<bool>() && GetCCAlly() != null && _W.IsReady())
             {
-                _W.Cast(GetCCAlly(), PacketCasting());
+                _W.Cast(GetCCAlly());
                 return;
             }
 
             if (Config.SubMenu("Lantern").Item("useW").GetValue<bool>() && GetLowAlly() != null && _W.IsReady())
             {
-                if (GetLowAlly().Position.CountEnemysInRange(950) >=
+                if (GetLowAlly().Position.CountEnemiesInRange(950) >=
                     Config.SubMenu("Lantern").Item("numEnemies").GetValue<Slider>().Value)
                 {
-                    _W.Cast(GetLowAlly(), PacketCasting());
+                    _W.Cast(GetLowAlly());
                 }
             }
         }
@@ -621,7 +596,7 @@ namespace yol0Thresh
         {
             Obj_AI_Hero lowAlly = null;
             foreach (
-                Obj_AI_Hero ally in
+                var ally in
                     ObjectManager.Get<Obj_AI_Hero>()
                         .Where(
                             unit => unit.Team == Player.Team && !unit.IsDead && Player.Distance(unit) <= _W.Range + 200)
@@ -629,7 +604,7 @@ namespace yol0Thresh
             {
                 if (lowAlly == null)
                     lowAlly = ally;
-                else if (!lowAlly.IsDead && ally.Health / ally.MaxHealth < lowAlly.Health / lowAlly.MaxHealth)
+                else if (!lowAlly.IsDead && ally.Health/ally.MaxHealth < lowAlly.Health/lowAlly.MaxHealth)
                     lowAlly = ally;
             }
             return lowAlly;
@@ -640,12 +615,12 @@ namespace yol0Thresh
             if (Hud.SelectedUnit != null && Hud.SelectedUnit is Obj_AI_Hero && Hud.SelectedUnit.Team == Player.Team &&
                 Player.Distance(Hud.SelectedUnit.Position) <= _W.Range + 200)
             {
-                return (Obj_AI_Hero)Hud.SelectedUnit;
+                return (Obj_AI_Hero) Hud.SelectedUnit;
             }
 
             Obj_AI_Hero nearAlly = null;
             foreach (
-                Obj_AI_Hero ally in
+                var ally in
                     ObjectManager.Get<Obj_AI_Hero>()
                         .Where(
                             unit => unit.Team == Player.Team && !unit.IsDead && Player.Distance(unit) <= _W.Range + 200)
@@ -663,7 +638,7 @@ namespace yol0Thresh
         {
             if (Player.Distance(unit) <= _E.Range)
             {
-                _E.Cast(unit.ServerPosition, PacketCasting());
+                _E.Cast(unit.ServerPosition);
             }
         }
 
@@ -671,9 +646,9 @@ namespace yol0Thresh
         {
             if (Player.Distance(unit) <= _E.Range)
             {
-                float pX = Player.Position.X + (Player.Position.X - unit.Position.X);
-                float pY = Player.Position.Y + (Player.Position.Y - unit.Position.Y);
-                _E.Cast(new Vector2(pX, pY), PacketCasting());
+                var pX = Player.Position.X + (Player.Position.X - unit.Position.X);
+                var pY = Player.Position.Y + (Player.Position.Y - unit.Position.Y);
+                _E.Cast(new Vector2(pX, pY));
             }
         }
 
