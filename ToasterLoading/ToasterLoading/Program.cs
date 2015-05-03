@@ -40,7 +40,7 @@ namespace ToasterLoading
         private static byte PacketHeader = 224;
         private static bool GameStarted;
 #if DISABLED
-		private const string Patch = "5.8";
+		private const string Patch = "5.9";
 #endif
         static void Main(string[] args)
         {
