@@ -10,13 +10,9 @@
  **************************/
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Drawing;
-using System.Timers;
 using System.IO;
+using System.Timers;
 using LeagueSharp;
 
 namespace ToasterLoading
@@ -37,12 +33,13 @@ namespace ToasterLoading
         private static int Stage;
         private static string statusText;
         private static string statusText2;
-        private static byte PacketHeader = 224;
+        private const byte PacketHeader = 137;
         private static bool GameStarted;
 #if DISABLED
 		private const string Patch = "5.9";
 #endif
-        static void Main(string[] args)
+
+        private static void Main(string[] args)
         {
             Drawing.OnDraw += Drawing_OnDraw;
             Game.OnStart += Game_OnStart;
@@ -56,7 +53,7 @@ namespace ToasterLoading
         private static void Game_OnStart(EventArgs args)
         {
             GameStarted = true;
-            
+
             Game.OnStart -= Game_OnStart;
             Drawing.OnDraw -= Drawing_OnDraw;
 #if !DISABLED
@@ -74,12 +71,21 @@ namespace ToasterLoading
 #if !DISABLED
                     Drawing.DrawText(10, 10, Color.Red, "Toaster Loading:");
 
-                    Color textColor = Color.LightYellow;
+                    var textColor = Color.LightYellow;
                     switch (Stage)
                     {
-                        case 0: statusText = "Waiting for packet"; textColor = Color.LightYellow; break;
-                        case 1: statusText = "Packet caught. Press spacebar when you're ready to play"; textColor = Color.LimeGreen; break;
-                        case 2: statusText = "Toaster disabled. Game will start in several seconds"; textColor = Color.Turquoise; break;
+                        case 0:
+                            statusText = "Waiting for packet";
+                            textColor = Color.LightYellow;
+                            break;
+                        case 1:
+                            statusText = "Packet caught. Press spacebar when you're ready to play";
+                            textColor = Color.LimeGreen;
+                            break;
+                        case 2:
+                            statusText = "Toaster disabled. Game will start in several seconds";
+                            textColor = Color.Turquoise;
+                            break;
                     }
                     if (Stage == 1)
                         Drawing.DrawText(10, 30, textColor, statusText + statusText2);
@@ -88,14 +94,12 @@ namespace ToasterLoading
 #else
                     Drawing.DrawText(10, 10, Color.Tomato, "LeagueSharp's SendPacket function is currently broken on " + Patch);
 #endif
-                    
                 }
             }
             catch (Exception e)
             {
                 Console.WriteLine(e.ToString());
             }
-            
         }
 
         private static void Game_OnWndProc(WndEventArgs args)
@@ -131,7 +135,7 @@ namespace ToasterLoading
                 Stage = 1; // Packet caught
                 args.Process = false;
                 packet.Write(args.PacketData, 0, args.PacketData.Length);
-                _failsafeTimer = new Timer(SecondsToWait * 1000);
+                _failsafeTimer = new Timer(SecondsToWait*1000);
                 _failsafeTimer.Elapsed += _failsafeTimer_Elapsed;
                 _failsafeTimer.Start();
                 _ticker = new Timer(1000);
@@ -158,17 +162,17 @@ namespace ToasterLoading
             }
         }
 
-        static void _ticker_Elapsed(object sender, ElapsedEventArgs e)
+        private static void _ticker_Elapsed(object sender, ElapsedEventArgs e)
         {
             if (TickerSeconds > 0)
             {
                 TickerSeconds -= 1;
                 var ts = TimeSpan.FromSeconds(TickerSeconds);
-                statusText2 = ": " + ts.ToString();
+                statusText2 = ": " + ts;
             }
         }
 
-        static void _failsafeTimer_Elapsed(object sender, ElapsedEventArgs e)
+        private static void _failsafeTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
             try
             {
@@ -189,7 +193,6 @@ namespace ToasterLoading
             {
                 Console.WriteLine(ex.ToString());
             }
-
         }
     }
 }
