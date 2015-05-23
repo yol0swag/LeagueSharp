@@ -7,6 +7,31 @@ using SharpDX;
 using Color = System.Drawing.Color;
 // ReSharper disable InconsistentNaming
 
+/* TODO:
+ * Ult multi-knockup
+ * Insec move to mouse
+ * x 
+ * Add smite usage/jungle steal
+ *  -> Smite champions
+ *  -> Q->Smite->Q2 jungle steal
+ *  -> Smite jungle creeps
+ * Add W to gapclose in combo mode if Q is down
+ * Test harass mode
+ * Jungle escape spots with Q
+ * Add item damage into damage calculations?
+ * 
+ * Auto W2/E2 when they are about to expire - AutoSpells()
+ * Add ward placement in SpellDodger?
+ */
+
+/* DONE:
+ * Improve non-kill combo to use passive properly
+ * Obey combo settings :P
+ * Fix Wardjump/Flash insec mode to use flash
+ * Add wardjump range check for mouse so it doesn't hop to the ward 20 units away or the wrong direction
+ * (alpha) Test/Improve GetInsecQTarget()
+ */
+
 namespace yol0LeeSin
 {
     internal class Program
@@ -850,6 +875,7 @@ namespace yol0LeeSin
 
         private static void Insec(Obj_AI_Hero target)
         {
+            //Orbwalking.MoveTo(Game.CursorPos);
             if (!_R.IsReady())
                 return;
 
@@ -870,7 +896,7 @@ namespace yol0LeeSin
                     {
                         if (Player.Distance(insecPos) <= 600)
                         {
-                            var insecObj = GetInsecObject(insecPos.To3D(), 200);
+                            var insecObj = GetInsecObject(insecPos.To3D(), 125);
                             if (insecObj != null)
                             {
                                 if (Player.Distance(insecObj.Position) <= 600)
@@ -931,7 +957,7 @@ namespace yol0LeeSin
                     }
                     break;
                 default:
-                    if (_W.IsReady() && Player.Mana >= 50 && GetWardSlot().IsValidSlot())
+                    if (_W.IsReady() && Player.Mana >= 50 && (GetWardSlot().IsValidSlot() || _ward.IsValid))
                     {
                         if (Player.Distance(insecPos) <= 600)
                         {
@@ -967,10 +993,14 @@ namespace yol0LeeSin
                         {
                             _Q2.CastOnUnit(_insecQTarget);
                         }
-                        return;
                     }
-                    if (_F.Slot != SpellSlot.Unknown && _F.IsReady() && _W.IsReady())
+                    else if (_F.Slot != SpellSlot.Unknown && _F.IsReady() && _W.IsReady())
                     {
+                        var insecObj = GetInsecObject(insecPos.To3D(), 600);
+                        if (insecObj != null)
+                        {
+                            return;
+                        }
                         if (Player.Distance(insecPos) < 400 && _F.Slot != SpellSlot.Unknown && _F.IsReady())
                         {
                             _F.Cast(insecPos);
@@ -1002,7 +1032,6 @@ namespace yol0LeeSin
 
         private static void CastQCombo(Obj_AI_Base target)
         {
-#if HITCHANCE
             switch (_menu.SubMenu("Combo").Item("qHitchance").GetValue<StringList>().SelectedIndex)
             {
                 case 0:
@@ -1018,14 +1047,11 @@ namespace yol0LeeSin
                     _Q.CastIfHitchanceEquals(target, HitChance.VeryHigh);
                     break;
             }
-#else
-            _Q.Cast(target);
-#endif
+
         }
 
         private static void CastQHarass(Obj_AI_Base target)
         {
-#if HITCHANCE
             switch (_menu.SubMenu("Harass").Item("qHitchance").GetValue<StringList>().SelectedIndex)
             {
                 case 0:
@@ -1041,9 +1067,6 @@ namespace yol0LeeSin
                     _Q.CastIfHitchanceEquals(target, HitChance.VeryHigh);
                     break;
             }
-#else
-            _Q.Cast(target);
-#endif
         }
 
         private static bool CanCastW()
