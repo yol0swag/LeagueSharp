@@ -897,7 +897,7 @@ namespace yol0LeeSin
                     {
                         if (Player.Distance(insecPos) <= 600)
                         {
-                            var insecObj = GetInsecObject(insecPos.To3D(), 125);
+                            var insecObj = GetInsecObject(insecPos.To3D(), 200);
                             if (insecObj != null)
                             {
                                 if (Player.Distance(insecObj.Position) <= 600)
@@ -962,7 +962,7 @@ namespace yol0LeeSin
                     {
                         if (Player.Distance(insecPos) <= 600)
                         {
-                            var insecObj = GetInsecObject(insecPos.To3D(), 600);
+                            var insecObj = GetInsecObject(insecPos.To3D(), 200);
                             if (insecObj != null)
                             {
                                 _W.CastOnUnit(insecObj);
