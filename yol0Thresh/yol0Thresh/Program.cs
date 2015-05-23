@@ -109,7 +109,7 @@ namespace yol0Thresh
             Config.SubMenu("Misc")
                 .AddItem(
                     new MenuItem("qHitChance", "Q HitChance").SetValue(
-                        new StringList(new[] {"Low", "Medium", "High", "Very High"}, 2)));
+                        new StringList(new[] {"Low", "Medium", "High", "Very High"}, 3)));
 
             Config.SubMenu("Misc").AddSubMenu(new Menu("Gapclosers", "Gapclosers"));
             if (ObjectManager.Get<Obj_AI_Hero>().Any(unit => unit.Team != Player.Team && unit.ChampionName == "Rengar"))
