@@ -837,16 +837,17 @@ namespace yol0LeeSin
                         obj =>
                             (obj.Name.Contains("ward") || obj.Name.Contains("Ward") || obj.Name.Contains("Trinket")) &&
                             obj.IsAlly && pos.Distance(obj.Position) <= range)
-                    .OrderByDescending(obj => obj.Distance(pos))
+                    .OrderBy(obj => obj.Distance(pos))
                     .ToList();
-            foreach (var ally in allies.Where(ally => !ally.IsMe))
-            {
-                return ally;
-            }
-
-            if (_ward != null && _ward.IsValid && !_ward.IsDead && Player.Distance(_ward.Position) <= range)
+            
+			if (_ward != null && _ward.IsValid && !_ward.IsDead && Player.Distance(_ward.Position) <= range)
             {
                 return _ward as Obj_AI_Base;
+            }
+			
+			foreach (var ally in allies.Where(ally => !ally.IsMe))
+            {
+                return ally;
             }
 
             foreach (var minion in minions)
