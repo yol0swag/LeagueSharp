@@ -7,31 +7,6 @@ using SharpDX;
 using Color = System.Drawing.Color;
 // ReSharper disable InconsistentNaming
 
-/* TODO:
- * Ult multi-knockup
- * Insec move to mouse
- * x 
- * Add smite usage/jungle steal
- *  -> Smite champions
- *  -> Q->Smite->Q2 jungle steal
- *  -> Smite jungle creeps
- * Add W to gapclose in combo mode if Q is down
- * Test harass mode
- * Jungle escape spots with Q
- * Add item damage into damage calculations?
- * 
- * Auto W2/E2 when they are about to expire - AutoSpells()
- * Add ward placement in SpellDodger?
- */
-
-/* DONE:
- * Improve non-kill combo to use passive properly
- * Obey combo settings :P
- * Fix Wardjump/Flash insec mode to use flash
- * Add wardjump range check for mouse so it doesn't hop to the ward 20 units away or the wrong direction
- * (alpha) Test/Improve GetInsecQTarget()
- */
-
 namespace yol0LeeSin
 {
     internal class Program
@@ -162,6 +137,7 @@ namespace yol0LeeSin
             _menu.AddSubMenu(new Menu("Harass", "Harass"));
             _menu.AddSubMenu(new Menu("Insec", "Insec"));
             _menu.AddSubMenu(new Menu("Dodge", "Dodge"));
+            _menu.AddSubMenu(new Menu("Wardjump", "Wardjump"));
             _menu.AddSubMenu(new Menu("Drawing", "Draw"));
             
             TargetSelector.AddToMenu(_menu.SubMenu("Target Selector"));
@@ -186,7 +162,10 @@ namespace yol0LeeSin
                     new MenuItem("qHitchance", "Q Hitchance").SetValue(
                         new StringList(new[] {"Low", "Medium", "High", "VeryHigh"}, 1)));
 
-            /*_menu.SubMenu("Harass").AddItem(new MenuItem("useQ", "Use Q").SetValue(true));
+            _menu.SubMenu("Combo")
+                .AddItem(new MenuItem("autoR", "Auto R Multiple (set 0 to disable)").SetValue(new Slider(3, 0, HeroManager.Enemies.Count)));
+
+            _menu.SubMenu("Harass").AddItem(new MenuItem("useQ", "Use Q").SetValue(true));
             _menu.SubMenu("Harass").AddItem(new MenuItem("useQ2", "Use Q2").SetValue(true));
             _menu.SubMenu("Harass").AddItem(new MenuItem("useW", "W Away").SetValue(true));
             _menu.SubMenu("Harass").AddItem(new MenuItem("useE", "Use E").SetValue(true));
@@ -195,7 +174,7 @@ namespace yol0LeeSin
             _menu.SubMenu("Harass")
                 .AddItem(
                     new MenuItem("qHitchance", "Q Hitchance").SetValue(
-                        new StringList(new[] {"Low", "Medium", "High", "VeryHigh"}, 1)));*/
+                        new StringList(new[] {"Low", "Medium", "High", "VeryHigh"}, 1)));
 
             _menu.SubMenu("Insec")
                 .AddItem(
@@ -206,6 +185,13 @@ namespace yol0LeeSin
                     new MenuItem("mode", "Insec Mode").SetValue(
                         new StringList(new[] {"To Ally", "To Mouse", "To Turret"})));
             _menu.SubMenu("Insec").AddItem(new MenuItem("qCreep", "Q to enemy near target (experimental)").SetValue(false));
+            _menu.SubMenu("Insec").AddItem(new MenuItem("jumpCreep", "Jump to ally minion for insec").SetValue(true));
+            _menu.SubMenu("Insec").AddItem(new MenuItem("jumpAlly", "Jump to ally champion for insec").SetValue(true));
+
+            _menu.SubMenu("Wardjump").AddItem(new MenuItem("newWard", "Place new ward every time").SetValue(false));
+            _menu.SubMenu("Wardjump").AddItem(new MenuItem("jumpWard", "Jump to wards").SetValue(true));
+            _menu.SubMenu("Wardjump").AddItem(new MenuItem("jumpAlly", "Jump to ally champions").SetValue(true));
+            _menu.SubMenu("Wardjump").AddItem(new MenuItem("jumpMinion", "Jump to ally minions").SetValue(true));
 
             _menu.SubMenu("Draw").AddItem(new MenuItem("drawQ", "Draw Q Range").SetValue(new Circle(true, Color.Green)));
             _menu.SubMenu("Draw").AddItem(new MenuItem("drawW", "Draw W Range").SetValue(new Circle(true, Color.Green)));
@@ -239,23 +225,22 @@ namespace yol0LeeSin
         private static double GetDamage(Obj_AI_Hero target)
         {
             var qDmg = UseQ && _Q.IsReady() ? Player.GetSpellDamage(target, SpellSlot.Q) : 0.0;
-            if (UseQ && UseQ2 && _Q.IsReady() && _Q.Instance.Name == "BlindMonkQOne")
-            {
-                qDmg += Player.GetSpellDamage(target, SpellSlot.Q, 1);
-            }
+            
             var eDmg = UseE && _E.IsReady() ? Player.GetSpellDamage(target, SpellSlot.E) : 0.0;
             var rDmg = UseR && _R.IsReady() ? Player.GetSpellDamage(target, SpellSlot.R) : 0.0;
-            var aDmg = Player.GetAutoAttackDamage(target) * 0.87;
             var iDmg = 0.0;
 
             if (UseI && _I.Slot != SpellSlot.Unknown && _I.IsReady())
                 iDmg = Player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite);
 
-            return qDmg + eDmg + rDmg + aDmg*2 + iDmg;
+            if (UseQ && UseQ2 && _Q.IsReady() && _Q.Instance.Name == "BlindMonkQOne")
+            {
+                qDmg += ComboGenerator.GetQ2Damage(target, eDmg + rDmg);
+            }
+            return qDmg + eDmg + rDmg + iDmg;
         }
 
         #endregion
-
         #region Events
 
         private static void OnDraw(EventArgs args)
@@ -295,14 +280,14 @@ namespace yol0LeeSin
                 Hud.SelectedUnit != null && _target.NetworkId == Hud.SelectedUnit.NetworkId && _R.IsReady())
             {
                 var insecPos = GetInsecPosition(_target);
-                Render.Circle.DrawCircle(insecPos.To3D(), 40f, Color.Green);
-                var dirPos = (_target.Position.To2D() - insecPos).Normalized();
-                var endPos = _target.Position.To2D() + (dirPos*1200);
+                Render.Circle.DrawCircle(insecPos.To3D(), 40f, Color.Cyan);
+                var dirPos = (_target.ServerPosition.To2D() - insecPos).Normalized();
+                var endPos = _target.ServerPosition.To2D() + (dirPos*1200);
 
                 var wts1 = Drawing.WorldToScreen(insecPos.To3D());
                 var wts2 = Drawing.WorldToScreen(endPos.To3D());
 
-                Drawing.DrawLine(wts1, wts2, 2, Color.Green);
+                Drawing.DrawLine(wts1, wts2, 2, Color.Cyan);
             }
 
             if (_menu.SubMenu("Draw").Item("drawCombo").GetValue<bool>())
@@ -331,6 +316,7 @@ namespace yol0LeeSin
         private static void Buff()
         {
             var p = false;
+
             foreach (var buff in Player.Buffs.Where(buff => buff.DisplayName == "BlindMonkFlurry"))
             {
                 p = true;
@@ -366,10 +352,10 @@ namespace yol0LeeSin
             {
                 Combo(_target);
             }
-            /*else if (_orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Mixed && _target != null)
+            else if (_orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Mixed && _target != null)
             {
                 Harass(_target);
-            }*/
+            }
         }
 
         private static void OnProcessSpellCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
@@ -389,7 +375,6 @@ namespace yol0LeeSin
         }
 
         #endregion
-
         #region Combo
 
         private static void UseItems(Obj_AI_Hero target)
@@ -438,6 +423,10 @@ namespace yol0LeeSin
 
         private static void Combo(Obj_AI_Hero target)
         {
+            if (_menu.SubMenu("Combo").Item("autoR").GetValue<Slider>().Value >= 2)
+            {
+                CastRMultiple(_menu.SubMenu("Combo").Item("autoR").GetValue<Slider>().Value);
+            }
             if (_menu.SubMenu("Combo").Item("useItems").GetValue<bool>())
                 UseItems(target);
 
@@ -454,18 +443,23 @@ namespace yol0LeeSin
                     {
                         _lastSpellCast = Utils.GameTimeTickCount;
                         CastQCombo(target);
+                        return;
+                    }
+
+                    if (target.HasBuff("BlindMonkQOne") && UseQ2 && IsQTwo)
+                    {
+                        if (Orbwalking.InAutoAttackRange(target) && pCount > 0)
+                            return;
+                        _lastSpellCast = Utils.GameTimeTickCount;
+                        _Q2.CastOnUnit(target);
+                        return;
                     }
 
                     if (UseE && _E.IsReady() && IsEOne && target.IsValidTarget(_E.Range) && pCount < 1)
                     {
                         _lastSpellCast = Utils.GameTimeTickCount;
                         _E.Cast();
-                    }
-
-                    if (target.HasBuff("BlindMonkQOne") && UseQ2 && IsQTwo)
-                    {
-                        _lastSpellCast = Utils.GameTimeTickCount;
-                        _Q2.CastOnUnit(target);
+                        return;
                     }
 
                     if (UseE2 && _E2.IsReady() && IsETwo && target.IsValidTarget(_E2.Range) && Player.Mana >= 50 && pCount == 0)
@@ -477,9 +471,25 @@ namespace yol0LeeSin
             }
         }
 
-        private static void CastRMultiple(Obj_AI_Hero target, int min)
+        private static void CastRMultiple(int min)
         {
-            //next update :)
+            if (!_R.IsReady())
+                return;
+
+            foreach (var enemy in from enemy in HeroManager.Enemies let input = new PredictionInput()
+            {
+                Aoe = false,
+                Collision = true,
+                CollisionObjects = new[] {CollisionableObjects.Heroes},
+                Delay = 0.1f,
+                Radius = 100f,
+                Range = _R.Range,
+                Speed = 1500f,
+                From = Player.ServerPosition,
+            } let output = Prediction.GetPrediction(input) where output.Hitchance >= HitChance.Medium && Player.Distance(output.CastPosition) < _R.Range let endPos = (Player.ServerPosition + output.CastPosition - Player.ServerPosition).Normalized()*1000 let colObjs = output.CollisionObjects where Player.Distance(endPos) < 1200 && colObjs.Any() where colObjs.Count >= min select enemy)
+            {
+                _R.CastOnUnit(enemy);
+            }
         }
 
         private static bool KillCombo(Obj_AI_Hero target)
@@ -519,7 +529,7 @@ namespace yol0LeeSin
                 return false;
             }
 
-            if (Player.Distance(target.Position) > _nextSpell.Range)
+            if (Player.Distance(target.ServerPosition) > _nextSpell.Range)
             {
                 return false;
             }
@@ -604,19 +614,18 @@ namespace yol0LeeSin
         }
 
         #endregion
-
         #region Harass
-        /* Not quite ready for harass yet :)
+        // Not quite ready for harass yet :)
         private static Obj_AI_Base GetHarassObject(Obj_AI_Hero target)
         {
             var allies =
-                HeroManager.Allies.Where(hero => hero.Distance(target.Position) > 350)
-                    .OrderBy(hero => hero.Distance(target.Position))
+                HeroManager.Allies.Where(hero => hero.Distance(target.ServerPosition) > 350 && hero.Distance(target.ServerPosition) < 700)
+                    .OrderByDescending(hero => hero.Distance(target.ServerPosition))
                     .ToList();
 
             var minions =
-                MinionManager.GetMinions(Player.Position, 700, MinionTypes.All, MinionTeam.Ally)
-                    .OrderBy(minion => minion.Distance(target.Position))
+                MinionManager.GetMinions(target.ServerPosition, 700, MinionTypes.All, MinionTeam.Ally)
+                    .OrderByDescending(minion => minion.Distance(target.ServerPosition))
                     .ToList();
 
             var wards =
@@ -624,17 +633,16 @@ namespace yol0LeeSin
                     .Where(
                         obj =>
                             (obj.Name.Contains("Ward") || obj.Name.Contains("ward") || obj.Name.Contains("Trinket")) &&
-                            obj.IsAlly && Player.Distance(obj.Position) <= 700)
-                    .OrderBy(obj => obj.Distance(target.Position))
+                            obj.IsAlly && target.Distance(obj.ServerPosition) <= 700)
+                    .OrderByDescending(obj => obj.Distance(target.ServerPosition))
                     .ToList();
 
-            foreach (var ally in allies)
+            foreach (var ally in allies.Where(ally => !ally.IsMe))
             {
-                if (!ally.IsMe)
-                    return ally;
+                return ally;
             }
 
-            if (_ward != null && _ward.IsValid && !_ward.IsDead && Player.Distance(_ward.Position) <= 700)
+            if (_ward != null && _ward.IsValid && !_ward.IsDead && target.Distance(_ward.Position) <= 700)
             {
                 return _ward as Obj_AI_Base;
             }
@@ -664,28 +672,31 @@ namespace yol0LeeSin
 
                 if (target.HasBuff("BlindMonkQOne") && HUseQ2 && IsQTwo)
                 {
+                    _lastSpellCast = Utils.GameTimeTickCount;
                     _Q2.CastOnUnit(target);
                 }
                 if (HUseE2 && _E2.IsReady() && IsETwo && target.IsValidTarget(_E2.Range) && Player.Mana >= 50)
                 {
+                    _lastSpellCast = Utils.GameTimeTickCount;
                     _E2.Cast();
                 }
 
                 if (!(_Q.IsReady() && HUseQ) && !(_E.IsReady() && HUseE))
                 {
                     var obj = GetHarassObject(target);
+                    if (obj != null)
+                        Console.WriteLine("Harass obj: " + obj.Name);
                     if (obj != null && _W.IsReady() && IsWOne)
                     {
+                        _lastSpellCast = Utils.GameTimeTickCount;
                         _W.CastOnUnit(obj);
                     }
                 }
             }
-        }*/
+        }
 
         #endregion
-
         #region Escape
-
         private static InventorySlot GetWardSlot()
         {
             var wardNames = new[]
@@ -693,7 +704,7 @@ namespace yol0LeeSin
                 "Warding Totem (Trinket)", "Greater Totem (Trinket)", "Greater Stealth Totem (Trinket)", "Ruby Sightstone",
                 "Sightstone", "Stealth Ward"
             };
-            return wardNames.Select(name => Player.InventoryItems.FirstOrDefault(slot => slot.DisplayName == name)).FirstOrDefault(id => id.IsValidSlot() && Player.Spellbook.CanUseSpell(id.SpellSlot) == SpellState.Ready);
+            return wardNames.Select(name => Player.InventoryItems.FirstOrDefault(slot => slot.DisplayName == name)).FirstOrDefault(id => id.IsValidSlot() && Player.Spellbook.CanUseSpell(id.SpellSlot) == SpellState.Ready && id.Stacks > 0);
         }
 
         private static bool CanCastWard()
@@ -703,6 +714,16 @@ namespace yol0LeeSin
 
         private static Obj_AI_Base GetEscapeObject(Vector3 pos, int range = 700)
         {
+            if (_ward != null && _ward.IsValid && !_ward.IsDead && Player.Distance(_ward.Position) <= range)
+            {
+                return _ward as Obj_AI_Base;
+            }
+
+            if (_menu.SubMenu("Wardjump").Item("newWard").GetValue<bool>() && _menu.SubMenu("Keys").Item("Wardjump").GetValue<KeyBind>().Active)
+            {
+                return null;
+            }
+
             var allies =
                 HeroManager.Allies.Where(hero => hero.Distance(pos) <= range)
                     .OrderBy(hero => hero.Distance(pos))
@@ -716,28 +737,20 @@ namespace yol0LeeSin
                     .Where(
                         obj =>
                             (obj.Name.Contains("Ward") || obj.Name.Contains("ward") || obj.Name.Contains("Trinket")) &&
-                            obj.IsAlly && pos.Distance(obj.Position) <= range)
+                            obj.IsAlly && pos.Distance(obj.ServerPosition) <= range)
                     .OrderBy(obj => obj.Distance(pos))
                     .ToList();
 
-            foreach (var ally in allies.Where(ally => !ally.IsMe))
+            foreach (var ally in allies.Where(ally => !ally.IsMe).Where(ally => _menu.SubMenu("Wardjump").Item("jumpAlly").GetValue<bool>()))
             {
                 return ally;
             }
 
-            if (_ward != null && _ward.IsValid && !_ward.IsDead && Player.Distance(_ward.Position) <= range)
+            foreach (var ward in wards.Where(ward => Player.Distance(ward.ServerPosition) > 400).Where(ward => _menu.SubMenu("Wardjump").Item("jumpWard").GetValue<bool>()))
             {
-                return _ward as Obj_AI_Base;
-            }
-
-            foreach (var ward in wards)
-            {
-                if (Player.Distance(ward.Position) < 400)
-                    continue;
                 return ward;
             }
-
-            return minions.FirstOrDefault();
+            return _menu.SubMenu("Wardjump").Item("jumpMinion").GetValue<bool>() ? minions.FirstOrDefault() : null;
         }
 
         private static void Wardjump()
@@ -779,11 +792,10 @@ namespace yol0LeeSin
 
         private static Vector3 GetCorrectedMousePosition()
         {
-            return Player.Position - (Player.Position - Game.CursorPos).Normalized()*600;
+            return Player.ServerPosition - (Player.ServerPosition - Game.CursorPos).Normalized()*600;
         }
 
         #endregion
-
         #region Insec
 
         private static Vector2 GetInsecPosition(Obj_AI_Hero target)
@@ -793,32 +805,35 @@ namespace yol0LeeSin
                 var nearestTurret =
                     ObjectManager.Get<Obj_AI_Turret>()
                         .Where(obj => obj.IsAlly)
-                        .OrderBy(obj => Player.Distance(obj.Position))
+                        .OrderBy(obj => Player.Distance(obj.ServerPosition))
                         .ToList()[0];
                 var allies =
-                    HeroManager.Allies.Where(hero => hero.Distance(target.Position) <= 1500)
-                        .OrderByDescending(hero => hero.Distance(target.Position))
+                    HeroManager.Allies.Where(hero => hero.Distance(target.ServerPosition) <= 1500 && !hero.IsMe)
+                        .OrderByDescending(hero => hero.Distance(target.ServerPosition))
                         .ToList();
-                if (allies.Any() && !allies[0].IsMe)
+                if (allies.Any())
                 {
-                    var directionVector = (target.Position - allies[0].Position).Normalized().To2D();
-                    return target.Position.To2D() + (directionVector*250);
+                    foreach (var directionVector in allies.Select(ally => (target.ServerPosition - ally.ServerPosition).Normalized().To2D()))
+                    {
+                        return target.ServerPosition.To2D() + (directionVector * 250);
+                    }
                 }
-                var dirVector = (target.Position - nearestTurret.Position).Normalized().To2D();
-                return target.Position.To2D() + (dirVector*250);
+
+                var dirVector = (target.ServerPosition - nearestTurret.ServerPosition).Normalized().To2D();
+                return target.ServerPosition.To2D() + (dirVector*250);
             }
             if (_menu.SubMenu("Insec").Item("mode").GetValue<StringList>().SelectedValue == "To Mouse")
             {
-                var directionVector = (target.Position - Game.CursorPos).Normalized().To2D();
-                return target.Position.To2D() + (directionVector*250);
+                var directionVector = (target.ServerPosition - Game.CursorPos).Normalized().To2D();
+                return target.ServerPosition.To2D() + (directionVector*250);
             }
             var nearTurret =
                 ObjectManager.Get<Obj_AI_Turret>()
                     .Where(obj => obj.IsAlly)
-                    .OrderBy(obj => Player.Distance(obj.Position))
+                    .OrderBy(obj => Player.Distance(obj.ServerPosition))
                     .ToList()[0];
-            var dVector = (target.Position - nearTurret.Position).Normalized().To2D();
-            return target.Position.To2D() + (dVector*250);
+            var dVector = (target.ServerPosition - nearTurret.ServerPosition).Normalized().To2D();
+            return target.ServerPosition.To2D() + (dVector*250);
         }
 
         private static Obj_AI_Base GetInsecObject(Vector3 pos, int range = 700)
@@ -836,21 +851,21 @@ namespace yol0LeeSin
                     .Where(
                         obj =>
                             (obj.Name.Contains("ward") || obj.Name.Contains("Ward") || obj.Name.Contains("Trinket")) &&
-                            obj.IsAlly && pos.Distance(obj.Position) <= range)
-                    .OrderBy(obj => obj.Distance(pos))
+                            obj.IsAlly && pos.Distance(obj.ServerPosition) <= range)
+                    .OrderByDescending(obj => obj.Distance(pos))
                     .ToList();
-            
-			if (_ward != null && _ward.IsValid && !_ward.IsDead && Player.Distance(_ward.Position) <= range)
-            {
-                return _ward as Obj_AI_Base;
-            }
-			
-			foreach (var ally in allies.Where(ally => !ally.IsMe))
+
+            foreach (var ally in allies.Where(ally => !ally.IsMe).Where(ally => _menu.SubMenu("Insec").Item("jumpAlly").GetValue<bool>()))
             {
                 return ally;
             }
 
-            foreach (var minion in minions)
+            if (_ward != null && _ward.IsValid && !_ward.IsDead && Player.Distance(_ward.Position) <= range)
+            {
+                return _ward as Obj_AI_Base;
+            }
+
+            foreach (var minion in minions.Where(minion => _menu.SubMenu("Insec").Item("jumpCreep").GetValue<bool>()))
             {
                 return minion;
             }
@@ -877,6 +892,7 @@ namespace yol0LeeSin
         private static void Insec(Obj_AI_Hero target)
         {
             //Orbwalking.MoveTo(Game.CursorPos);
+            
             if (!_R.IsReady())
                 return;
 
@@ -897,10 +913,10 @@ namespace yol0LeeSin
                     {
                         if (Player.Distance(insecPos) <= 600)
                         {
-                            var insecObj = GetInsecObject(insecPos.To3D(), 200);
+                            var insecObj = GetInsecObject(insecPos.To3D(), 125);
                             if (insecObj != null)
                             {
-                                if (Player.Distance(insecObj.Position) <= 600)
+                                if (Player.Distance(insecObj.ServerPosition) <= 600)
                                 {
                                     _W.CastOnUnit(insecObj);
                                 }
@@ -962,7 +978,7 @@ namespace yol0LeeSin
                     {
                         if (Player.Distance(insecPos) <= 600)
                         {
-                            var insecObj = GetInsecObject(insecPos.To3D(), 200);
+                            var insecObj = GetInsecObject(insecPos.To3D(), 600);
                             if (insecObj != null)
                             {
                                 _W.CastOnUnit(insecObj);
@@ -1023,7 +1039,7 @@ namespace yol0LeeSin
                     }
                     break;
             }
-            
+            Player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
             //Orbwalking.MoveTo(Game.CursorPos);
         }
 

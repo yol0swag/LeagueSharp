@@ -226,11 +226,22 @@ namespace yol0LeeSin
                         killCombo.Add(Program._Q);
                         return killCombo;
                     }
+                    if (UseQ1 && target.Health <= qDmg && Player.Mana >= 50)
+                    {
+                        killCombo.Add(Program._Q);
+                        return killCombo;
+                    }
                     if (UseQ1 && UseQ2 && UseI && Program._I.IsReady() && target.Health <= qDmg + iDmg + GetQ2Damage(target, qDmg) && Player.Mana >= 80)
                     {
                         killCombo.Add(Program._Q);
                         killCombo.Add(Program._Q2);
                         killCombo.Add(Program._I);
+                        return killCombo;
+                    }
+                    if (UseQ1 && UseQ2 && target.Health <= qDmg + GetQ2Damage(target, qDmg) && Player.Mana >= 80)
+                    {
+                        killCombo.Add(Program._Q);
+                        killCombo.Add(Program._Q2);
                         return killCombo;
                     }
                     if (Program._E.IsReady() && IsEOne)
@@ -268,12 +279,6 @@ namespace yol0LeeSin
                     }
                     if (UseR && Program._R.IsReady())
                     {
-                        /*if (UseQ1 && target.Health <= qDmg + rDmg && Player.Mana >= 50 && dist <= Program._R.Range)
-                        {
-                            killCombo.Add(Program._R);
-                            killCombo.Add(Program._Q);
-                            return killCombo;
-                        }*/
                         if (UseQ1 && UseQ2 && target.Health <= qDmg + rDmg + GetQ2Damage(target, qDmg + rDmg) && dist <= Program._R.Range)
                         {
                             killCombo.Add(Program._Q);
@@ -359,7 +364,7 @@ namespace yol0LeeSin
                     str += "Ignite+";
             }
             str = str.Remove(str.Length - 1);
-
+            str += " kill!";
             return str;
         }
     }
