@@ -1039,7 +1039,7 @@ namespace yol0LeeSin
                     }
                     break;
             }
-            Player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
+            //Player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
             //Orbwalking.MoveTo(Game.CursorPos);
         }
 
