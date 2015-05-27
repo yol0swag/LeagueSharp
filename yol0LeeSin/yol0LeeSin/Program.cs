@@ -331,7 +331,7 @@ namespace yol0LeeSin
         private static void Buff()
         {
             var p = false;
-            foreach (var buff in Player.Buffs.Where(buff => buff.DisplayName == "BlindMonkFury"))
+            foreach (var buff in Player.Buffs.Where(buff => buff.DisplayName == "BlindMonkFlurry"))
             {
                 p = true;
                 pCount = buff.Count;
