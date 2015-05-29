@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("ToasterLoading")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Made by \"naked germans 2014\", maintained by \"yol0\"")]
+[assembly: AssemblyCompany("Made by \"Beaving\", maintained by \"yol0\"")]
 [assembly: AssemblyProduct("ToasterLoading")]
 [assembly: AssemblyCopyright("Copyright ©  2015")]
 [assembly: AssemblyTrademark("")]
@@ -32,5 +32,5 @@ using System.Runtime.InteropServices;
 // You can specify all the values or you can default the Build and Revision Numbers 
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("5.9")]
-[assembly: AssemblyFileVersion("5.9")]
+[assembly: AssemblyVersion("5.10")]
+[assembly: AssemblyFileVersion("5.10")]

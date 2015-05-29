@@ -33,7 +33,7 @@ namespace ToasterLoading
         private static int Stage;
         private static string statusText;
         private static string statusText2;
-        private const byte PacketHeader = 137;
+        private const byte PacketHeader = 153;
         private static bool GameStarted;
 #if DISABLED
 		private const string Patch = "5.9";
