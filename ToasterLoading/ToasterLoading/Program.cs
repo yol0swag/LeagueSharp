@@ -36,7 +36,7 @@ namespace ToasterLoading
         private const byte PacketHeader = 153;
         private static bool GameStarted;
 #if DISABLED
-		private const string Patch = "5.9";
+		private const string Patch = "5.11";
 #endif
 
         private static void Main(string[] args)
@@ -92,7 +92,7 @@ namespace ToasterLoading
                     else
                         Drawing.DrawText(10, 30, textColor, statusText);
 #else
-                    Drawing.DrawText(10, 10, Color.Tomato, "LeagueSharp's SendPacket function is currently broken on " + Patch);
+                    Drawing.DrawText(10, 10, Color.Tomato, "Toaster Loading is outdated for patch " + Patch);
 #endif
                 }
             }
