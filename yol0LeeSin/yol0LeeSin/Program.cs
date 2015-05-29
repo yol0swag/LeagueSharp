@@ -697,7 +697,7 @@ namespace yol0LeeSin
 
         #endregion
         #region Escape
-        private static InventorySlot GetWardSlot()
+        /*private static InventorySlot Items.GetWardSlot()
         {
             var wardNames = new[]
             {
@@ -705,7 +705,7 @@ namespace yol0LeeSin
                 "Sightstone", "Stealth Ward"
             };
             return wardNames.Select(name => Player.InventoryItems.FirstOrDefault(slot => slot.DisplayName == name)).FirstOrDefault(id => id.IsValidSlot() && Player.Spellbook.CanUseSpell(id.SpellSlot) == SpellState.Ready && id.Stacks > 0);
-        }
+        }*/
 
         private static bool CanCastWard()
         {
@@ -766,7 +766,7 @@ namespace yol0LeeSin
             }
             else if (_W.IsReady() && !Player.HasBuff("BlindMonkWOne"))
             {
-                var wardSlot = GetWardSlot();
+                var wardSlot = Items.GetWardSlot();
                 if (wardSlot.IsValidSlot() &&
                     (Player.Spellbook.CanUseSpell(wardSlot.SpellSlot) == SpellState.Ready || wardSlot.Stacks != 0) &&
                     CanCastWard())
@@ -923,7 +923,7 @@ namespace yol0LeeSin
                             }
                             else
                             {
-                                var slot = GetWardSlot();
+                                var slot = Items.GetWardSlot();
                                 if (slot.IsValidSlot() && Player.Spellbook.CanUseSpell(slot.SpellSlot) == SpellState.Ready)
                                 {
                                     Player.Spellbook.CastSpell(slot.SpellSlot, insecPos.To3D());
@@ -931,7 +931,7 @@ namespace yol0LeeSin
                                 return;
                             }
                         }
-                        if (!GetWardSlot().IsValidSlot())
+                        if (!Items.GetWardSlot().IsValidSlot())
                             return;
 
                         if (!_Q.IsReady())
@@ -974,7 +974,7 @@ namespace yol0LeeSin
                     }
                     break;
                 default:
-                    if (_W.IsReady() && Player.Mana >= 50 && (GetWardSlot().IsValidSlot() || _ward.IsValid))
+                    if (_W.IsReady() && Player.Mana >= 50 && (Items.GetWardSlot().IsValidSlot() || _ward.IsValid))
                     {
                         if (Player.Distance(insecPos) <= 600)
                         {
@@ -985,7 +985,7 @@ namespace yol0LeeSin
                             }
                             else
                             {
-                                var slot = GetWardSlot();
+                                var slot = Items.GetWardSlot();
                                 if (slot.IsValidSlot() && Player.Spellbook.CanUseSpell(slot.SpellSlot) == SpellState.Ready)
                                 {
                                     Player.Spellbook.CastSpell(slot.SpellSlot, insecPos.To3D());
@@ -994,7 +994,7 @@ namespace yol0LeeSin
                             }
                         }
 
-                        if (!GetWardSlot().IsValidSlot())
+                        if (!Items.GetWardSlot().IsValidSlot())
                             return;
 
                         if (!_Q.IsReady())
