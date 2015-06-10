@@ -1,5 +1,5 @@
 ﻿//#define UPDATEMODE
-//#define DISABLED
+#define DISABLED
 
 /**************************
  * 
