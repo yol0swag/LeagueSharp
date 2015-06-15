@@ -105,7 +105,8 @@ namespace ToasterLoading
                     }
                     else
                     {
-                        Drawing.DrawText(10, 10, Color.Tomato, "Toaster Loading is outdated for patch " + NextPatch);
+                        //Drawing.DrawText(10, 10, Color.Tomato, "Toaster Loading is outdated for patch " + NextPatch);
+                        Drawing.DrawText(10, 10, Color.Tomato, "Toaster Loading is broken and will be fixed soon.");
                     }
                     
                 }
