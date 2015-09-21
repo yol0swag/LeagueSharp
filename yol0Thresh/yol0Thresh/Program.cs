@@ -56,7 +56,7 @@ namespace yol0Thresh
             if (Player.ChampionName != "Thresh")
                 return;
 
-            _Q.SetSkillshot(0.5f, 70, 1900, true, SkillshotType.SkillshotLine);
+            _Q.SetSkillshot(0.5f, 120, 1900, true, SkillshotType.SkillshotLine);
             _W.SetSkillshot(0f, 200, 1750, false, SkillshotType.SkillshotCircle);
             _E.SetSkillshot(0.3f, 60, float.MaxValue, false, SkillshotType.SkillshotLine);
 
